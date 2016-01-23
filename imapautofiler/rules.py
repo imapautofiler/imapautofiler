@@ -94,6 +94,6 @@ class HeaderSubString(Rule):
         self._substring = rule_data['substring'].lower()
 
     def check(self, message):
-        header_value = message[self._header_name].lower()
+        header_value = message.get(self._header_name, '').lower()
         self._log.debug('%r in %r', self._substring, header_value)
         return (self._substring in header_value)
