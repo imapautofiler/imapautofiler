@@ -20,39 +20,33 @@ import logging
 import sys
 
 from imapautofiler import config
+import imapclient
 
 LOG = logging.getLogger(__name__)
 
 
 def process_rules(cfg, debug):
-    conn = imaplib.IMAP4_SSL(cfg['server']['hostname'])
+    conn = imapclient.IMAPClient(
+        cfg['server']['hostname'],
+        use_uid=True,
+        ssl=True,
+    )
     conn.login(cfg['server']['username'], cfg['server']['password'])
-    conn.enable('UTF8=ACCEPT')
     try:
 
         for mailbox in cfg['mailboxes']:
             mailbox_name = mailbox['name']
-            conn.select(
-                mailbox='"{}"'.format(mailbox_name).encode('utf-8'),
-            )
+            conn.select_folder(mailbox_name)
 
-            typ, [msg_ids] = conn.search(None, b'ALL')
-            if typ != 'OK':
-                raise RuntimeError('failed to list messages in %s' %
-                                   mailbox_name)
-            msg_ids = reversed(msg_ids.decode('utf-8').split(' '))
+            msg_ids = conn.search(['ALL'])
 
             for msg_id in msg_ids:
                 # Get the body of the message and create a Message
                 # object, one line at a time (skipping the first line
                 # that includes the server response).
                 email_parser = email.parser.BytesFeedParser()
-                typ, msg_data = conn.fetch(msg_id, '(BODY.PEEK[HEADER])')
-                if typ != 'OK':
-                    raise RuntimeError('could not fetch headers for %s' %
-                                       msg_id)
-                for block in msg_data[0][1:]:
-                    email_parser.feed(block)
+                response = conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
+                email_parser.feed(response[msg_id][b'BODY[HEADER]'])
                 message = email_parser.close()
                 if debug:
                     print(message.as_string().rstrip())
@@ -79,29 +73,15 @@ def process_rules(cfg, debug):
                         LOG.info('moving %s (%s) to %s',
                                  msg_id, message['subject'],
                                  rule['dest-mailbox'])
-                        dest_mailbox = '"{}"'.format(rule['dest-mailbox'])
-                        typ, response = conn.copy(
-                            msg_id,
-                            dest_mailbox.encode('utf-8'),
+                        dest_mailbox = rule['dest-mailbox']
+                        response = conn.copy(
+                            [msg_id],
+                            dest_mailbox,
                         )
-                        if typ != 'OK':
-                            raise RuntimeError(
-                                'could not copy message: %r' % response
-                            )
-                        typ, response = conn.store(
-                            msg_id,
-                            b'+FLAGS',
-                            r'\Deleted',
+                        response = conn.add_flags(
+                            [msg_id],
+                            [imapclient.DELETED],
                         )
-                        if typ != 'OK':
-                            raise RuntimeError(
-                                'could not mark message deleted: %r' %
-                                response)
-                        typ, response = conn.expunge()
-                        if typ != 'OK':
-                            raise RuntimeError(
-                                'could not expunge message: %r' %
-                                response)
                         # At this point we've processed the message
                         # based on one rule, so there is no need to
                         # look at the other rules.
@@ -110,6 +90,9 @@ def process_rules(cfg, debug):
                         LOG.debug('no rules match')
 
                 # break
+
+            # Remove messages that we just moved.
+            response = conn.expunge()
     finally:
         try:
             conn.close()
