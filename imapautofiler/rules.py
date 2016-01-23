@@ -13,7 +13,7 @@
 import logging
 
 
-def factory(rule_data):
+def factory(rule_data, cfg):
     """Create a rule processor.
 
     Using the rule type, instantiate a rule processor that can check
@@ -21,9 +21,9 @@ def factory(rule_data):
 
     """
     if 'or' in rule_data:
-        return Or(rule_data)
+        return Or(rule_data, cfg)
     if 'headers' in rule_data:
-        return Headers(rule_data)
+        return Headers(rule_data, cfg)
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
 
 
@@ -32,9 +32,10 @@ class Rule:
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, rule_data):
+    def __init__(self, rule_data, cfg):
         self._log.debug('new %r', rule_data)
         self._data = rule_data
+        self._cfg = cfg
 
     def check(self):
         raise NotImplementedError()
@@ -48,10 +49,10 @@ class Or(Rule):
 
     _log = logging.getLogger('Or')
 
-    def __init__(self, rule_data):
-        super().__init__(rule_data)
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
         self._sub_rules = [
-            factory(r)
+            factory(r, cfg)
             for r in rule_data['or'].get('rules', [])
         ]
 
@@ -67,12 +68,12 @@ class Headers(Rule):
 
     _log = logging.getLogger('Headers')
 
-    def __init__(self, rule_data):
-        super().__init__(rule_data)
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
         self._matchers = []
         for header in rule_data.get('headers', []):
             if 'substring' in header:
-                self._matchers.append(HeaderSubString(header))
+                self._matchers.append(HeaderSubString(header, cfg))
             else:
                 raise ValueError('unknown header matcher {!r}'.format(header))
 
@@ -87,8 +88,8 @@ class HeaderSubString(Rule):
 
     _log = logging.getLogger('HeaderSubString')
 
-    def __init__(self, rule_data):
-        super().__init__(rule_data)
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
         self._header_name = rule_data['name']
         self._substring = rule_data['substring'].lower()
 

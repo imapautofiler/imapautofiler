@@ -15,13 +15,15 @@ import logging
 import imapclient
 
 
-def factory(action_data):
+def factory(action_data, cfg):
     "Create an Action instance."
     name = action_data.get('name')
     if name == 'move':
-        return Move(action_data)
+        return Move(action_data, cfg)
     if name == 'delete':
-        return Delete(action_data)
+        return Delete(action_data, cfg)
+    if name == 'trash':
+        return Trash(action_data, cfg)
     raise ValueError('unrecognized rule action {!r}'.format(action_data))
 
 
@@ -30,8 +32,9 @@ class Action:
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, action_data):
+    def __init__(self, action_data, cfg):
         self._data = action_data
+        self._cfg = cfg
         self._log.debug('new: %r', action_data)
 
     def invoke(self, conn, message_id, message):
@@ -42,8 +45,8 @@ class Move(Action):
 
     _log = logging.getLogger('Move')
 
-    def __init__(self, action_data):
-        super().__init__(action_data)
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
         self._dest_mailbox = self._data.get('dest-mailbox')
 
     def invoke(self, conn, message_id, message):
@@ -53,6 +56,18 @@ class Move(Action):
             self._dest_mailbox)
         conn.copy([message_id], self._dest_mailbox)
         conn.add_flags([message_id], [imapclient.DELETED])
+
+
+class Trash(Move):
+
+    _log = logging.getLogger('Trash')
+
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
+        if self._dest_mailbox is None:
+            self._dest_mailbox = cfg.get('trash-mailbox')
+        if self._dest_mailbox is None:
+            raise ValueError('no "trash-mailbox" set in config')
 
 
 class Delete(Action):

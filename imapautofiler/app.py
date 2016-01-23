@@ -42,54 +42,45 @@ def get_message(conn, msg_id):
     return email_parser.close()
 
 
-def process_rules(cfg, debug):
-    conn = imapclient.IMAPClient(
-        cfg['server']['hostname'],
-        use_uid=True,
-        ssl=True,
-    )
-    conn.login(cfg['server']['username'], cfg['server']['password'])
-    try:
+def list_mailboxes(cfg, debug, conn):
+    for f in conn.list_folders():
+        print(f[-1])
 
-        for mailbox in cfg['mailboxes']:
-            mailbox_name = mailbox['name']
-            conn.select_folder(mailbox_name)
 
-            mailbox_rules = [
-                rules.factory(r)
-                for r in mailbox['rules']
-            ]
+def process_rules(cfg, debug, conn):
+    for mailbox in cfg['mailboxes']:
+        mailbox_name = mailbox['name']
+        conn.select_folder(mailbox_name)
 
-            msg_ids = conn.search(['ALL'])
+        mailbox_rules = [
+            rules.factory(r, cfg)
+            for r in mailbox['rules']
+        ]
 
-            for msg_id in msg_ids:
-                message = get_message(conn, msg_id)
-                if debug:
-                    print(message.as_string().rstrip())
+        msg_ids = conn.search(['ALL'])
+
+        for msg_id in msg_ids:
+            message = get_message(conn, msg_id)
+            if debug:
+                print(message.as_string().rstrip())
+            else:
+                LOG.debug('message %s: %s', msg_id, message['subject'])
+
+            for rule in mailbox_rules:
+                if rule.check(message):
+                    action = actions.factory(rule.get_action(), cfg)
+                    action.invoke(conn, msg_id, message)
+                    # At this point we've processed the message
+                    # based on one rule, so there is no need to
+                    # look at the other rules.
+                    break
                 else:
-                    LOG.debug('message %s: %s', msg_id, message['subject'])
+                    LOG.debug('no rules match')
 
-                for rule in mailbox_rules:
-                    if rule.check(message):
-                        action = actions.factory(rule.get_action())
-                        action.invoke(conn, msg_id, message)
-                        # At this point we've processed the message
-                        # based on one rule, so there is no need to
-                        # look at the other rules.
-                        break
-                    else:
-                        LOG.debug('no rules match')
+            # break
 
-                # break
-
-            # Remove messages that we just moved.
-            conn.expunge()
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
-        conn.logout()
+        # Remove messages that we just moved.
+        conn.expunge()
     return
 
 
@@ -111,6 +102,12 @@ def main(args=None):
         '-c', '--config-file',
         default='~/.imapautofiler.yml',
     )
+    parser.add_argument(
+        '--list-mailboxes',
+        default=False,
+        action='store_true',
+        help='instead of processing rules, print a list of mailboxes',
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -129,7 +126,23 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
-        process_rules(cfg, args.debug)
+        conn = imapclient.IMAPClient(
+            cfg['server']['hostname'],
+            use_uid=True,
+            ssl=True,
+        )
+        conn.login(cfg['server']['username'], cfg['server']['password'])
+        try:
+            if args.list_mailboxes:
+                list_mailboxes(cfg, args.debug, conn)
+            else:
+                process_rules(cfg, args.debug, conn)
+        finally:
+            try:
+                conn.close()
+            except:
+                pass
+            conn.logout()
     except Exception as err:
         if args.debug:
             raise
