@@ -17,8 +17,6 @@ import argparse
 import email.parser
 import imaplib
 import logging
-import pprint
-import re
 import sys
 
 from imapautofiler import config
@@ -26,22 +24,99 @@ from imapautofiler import config
 LOG = logging.getLogger(__name__)
 
 
-def open_connection(hostname, username, password):
-    # Connect to the server
-    LOG.info('connecting to %s@%s', username, hostname)
-    connection = imaplib.IMAP4_SSL(hostname)
-    connection.login(username, password)
-    connection.enable('UTF8=ACCEPT')
-    return connection
+def process_rules(cfg, debug):
+    conn = imaplib.IMAP4_SSL(cfg['server']['hostname'])
+    conn.login(cfg['server']['username'], cfg['server']['password'])
+    conn.enable('UTF8=ACCEPT')
+    try:
 
+        for mailbox in cfg['mailboxes']:
+            mailbox_name = mailbox['name']
+            conn.select(
+                mailbox='"{}"'.format(mailbox_name).encode('utf-8'),
+            )
 
-list_response_pattern = re.compile(r'\((?P<flags>.*?)\) "(?P<delimiter>.*)" (?P<name>.*)')
+            typ, [msg_ids] = conn.search(None, b'ALL')
+            if typ != 'OK':
+                raise RuntimeError('failed to list messages in %s' %
+                                   mailbox_name)
+            msg_ids = reversed(msg_ids.decode('utf-8').split(' '))
 
+            for msg_id in msg_ids:
+                # Get the body of the message and create a Message
+                # object, one line at a time (skipping the first line
+                # that includes the server response).
+                email_parser = email.parser.BytesFeedParser()
+                typ, msg_data = conn.fetch(msg_id, '(BODY.PEEK[HEADER])')
+                if typ != 'OK':
+                    raise RuntimeError('could not fetch headers for %s' %
+                                       msg_id)
+                for block in msg_data[0][1:]:
+                    email_parser.feed(block)
+                message = email_parser.close()
+                if debug:
+                    print(message.as_string().rstrip())
+                else:
+                    LOG.debug('message %s: %s', msg_id, message['subject'])
 
-def parse_list_response(line):
-    flags, delimiter, mailbox_name = list_response_pattern.match(line).groups()
-    mailbox_name = mailbox_name.strip('"')
-    return (flags, delimiter, mailbox_name)
+                for rule in mailbox['rules']:
+                    match = True
+                    for header in rule['headers']:
+                        LOG.debug('checking header %r', header['name'])
+                        header_value = message[header['name']] or ''
+                        if 'substring' in header:
+                            # simple substring rule
+                            LOG.debug('message[%s] = %r',
+                                      header['name'], header_value)
+                            LOG.debug('looking for substring %r',
+                                      header['substring'])
+                            if header['substring'] not in header_value:
+                                # this header doesn't match, so the
+                                # rule fails, so move to the next rule
+                                match = False
+                                break
+                    if match:
+                        LOG.info('moving %s (%s) to %s',
+                                 msg_id, message['subject'],
+                                 rule['dest-mailbox'])
+                        dest_mailbox = '"{}"'.format(rule['dest-mailbox'])
+                        typ, response = conn.copy(
+                            msg_id,
+                            dest_mailbox.encode('utf-8'),
+                        )
+                        if typ != 'OK':
+                            raise RuntimeError(
+                                'could not copy message: %r' % response
+                            )
+                        typ, response = conn.store(
+                            msg_id,
+                            b'+FLAGS',
+                            r'\Deleted',
+                        )
+                        if typ != 'OK':
+                            raise RuntimeError(
+                                'could not mark message deleted: %r' %
+                                response)
+                        typ, response = conn.expunge()
+                        if typ != 'OK':
+                            raise RuntimeError(
+                                'could not expunge message: %r' %
+                                response)
+                        # At this point we've processed the message
+                        # based on one rule, so there is no need to
+                        # look at the other rules.
+                        break
+                    else:
+                        LOG.debug('no rules match')
+
+                # break
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+        conn.logout()
+    return
 
 
 def main(args=None):
@@ -67,7 +142,7 @@ def main(args=None):
     if args.debug:
         imaplib.Debug = 4
 
-    if args.verbose:
+    if args.verbose or args.debug:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
@@ -80,57 +155,11 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
+        process_rules(cfg, args.debug)
     except Exception as err:
+        if args.debug:
+            raise
         parser.error(err)
-
-    conn = open_connection(
-        hostname=cfg['server']['hostname'],
-        username=cfg['server']['username'],
-        password=cfg['server']['password'],
-    )
-    try:
-        for mailbox in cfg['mailboxes']:
-            mailbox_name = mailbox['name']
-            conn.select(
-                mailbox='"{}"'.format(mailbox_name).encode('utf-8'),
-            )
-
-            typ, [msg_ids] = conn.search(None, b'ALL')
-            msg_ids = msg_ids.decode('utf-8').split(' ')
-            for msg_id in msg_ids:
-                # Get the body of the message and create a Message object.
-                email_parser = email.parser.BytesFeedParser()
-                typ, msg_data = conn.fetch(msg_id, '(BODY.PEEK[HEADER] FLAGS)')
-                for block in msg_data[0][1:]:
-                    email_parser.feed(block)
-                message = email_parser.close()
-                LOG.debug('message %s: %s', msg_id, message['subject'])
-
-                for rule in mailbox['rules']:
-                    match = True
-                    for header in rule['headers']:
-                        LOG.debug('checking header %r', header['name'])
-                        header_value = message[header['name']] or ''
-                        if 'substring' in header:
-                            # simple substring rule
-                            LOG.debug('message[%s] = %r',
-                                      header['name'], header_value)
-                            LOG.debug('looking for substring %r',
-                                      header['substring'])
-                            if header['substring'] not in header_value:
-                                # this header doesn't match, so the
-                                # rule fails, so move to the next rule
-                                match = False
-                                break
-                    if match:
-                        LOG.info('moving %s (%s) to %s',
-                                 msg_id, message['subject'],
-                                 rule['dest-mailbox'])
-                    else:
-                        LOG.debug('no rules match')
-    finally:
-#        conn.close()
-        conn.logout()
     return 0
 
 
