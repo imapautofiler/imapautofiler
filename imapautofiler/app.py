@@ -13,14 +13,110 @@
 """
 """
 
+import argparse
+import email.parser
+import imaplib
 import logging
+import pprint
+import re
 import sys
+
+from imapautofiler import config
 
 LOG = logging.getLogger(__name__)
 
 
+def open_connection(hostname, username, password):
+    # Connect to the server
+    LOG.info('connecting to %s@%s', username, hostname)
+    connection = imaplib.IMAP4_SSL(hostname)
+    connection.login(username, password)
+    connection.enable('UTF8=ACCEPT')
+    return connection
+
+
+list_response_pattern = re.compile(r'\((?P<flags>.*?)\) "(?P<delimiter>.*)" (?P<name>.*)')
+
+
+def parse_list_response(line):
+    flags, delimiter, mailbox_name = list_response_pattern.match(line).groups()
+    mailbox_name = mailbox_name.strip('"')
+    return (flags, delimiter, mailbox_name)
+
+
 def main(args=None):
-    return -1
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        default=False,
+    )
+    parser.add_argument(
+        '-c', '--config-file',
+        default='~/.imapautofiler.yml',
+    )
+    args = parser.parse_args()
+    if args.verbose:
+        log_level = logging.DEBUG
+        imaplib.Debug = 4
+    else:
+        log_level = logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format='%(message)s',
+    )
+    logging.debug('starting')
+
+    try:
+        cfg = config.get_config(args.config_file)
+    except Exception as err:
+        parser.error(err)
+
+    conn = open_connection(
+        hostname=cfg['server']['hostname'],
+        username=cfg['server']['username'],
+        password=cfg['server']['password'],
+    )
+    try:
+        for mailbox in cfg['mailboxes']:
+            mailbox_name = mailbox['name']
+            conn.select(
+                mailbox='"{}"'.format(mailbox_name).encode('utf-8'),
+            )
+            typ, [msg_ids] = conn.search(None, b'ALL')
+            msg_ids = msg_ids.decode('utf-8').split(' ')
+            print(mailbox_name, typ, msg_ids)
+
+            for msg_id in msg_ids:
+                email_parser = email.parser.BytesFeedParser()
+                typ, msg_data = conn.fetch(msg_id, '(BODY.PEEK[HEADER] FLAGS)')
+                pprint.pprint(msg_data)
+                print()
+                for block in msg_data[0][1:]:
+                    email_parser.feed(block)
+                message = email_parser.close()
+
+                print(message.as_string())
+                for rule in mailbox['rules']:
+                    match = True
+                    for header in rule['headers']:
+                        LOG.debug('Checking header %s', header['name'])
+                        header_value = message[header['name']]
+                        if 'substring' in header:
+                            # simple substring rule
+                            if header['substring'] not in header_value:
+                                # this header doesn't match, so the
+                                # rule fails, so move to the next rule
+                                match = False
+                                break
+                    if match:
+                        LOG.info('moving %s (%s) to %s',
+                                 msg_id, message['subject'],
+                                 rule['dest-mailbox'])
+    finally:
+#        conn.close()
+        conn.logout()
+    return 0
 
 
 if __name__ == '__main__':
