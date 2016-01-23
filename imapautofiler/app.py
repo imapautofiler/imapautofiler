@@ -19,9 +19,11 @@ import imaplib
 import logging
 import sys
 
+import imapclient
+
+from imapautofiler import actions
 from imapautofiler import config
 from imapautofiler import rules
-import imapclient
 
 LOG = logging.getLogger(__name__)
 
@@ -69,18 +71,8 @@ def process_rules(cfg, debug):
 
                 for rule in mailbox_rules:
                     if rule.check(message):
-                        action = rule._data['action']['name']
-                        if action == 'move':
-                            LOG.info('moving %s (%s) to %s',
-                                     msg_id, message['subject'],
-                                     rule._data['action']['dest-mailbox'])
-                            dest_mailbox = rule._data['action']['dest-mailbox']
-                            conn.copy([msg_id], dest_mailbox)
-                            conn.add_flags([msg_id], [imapclient.DELETED])
-                        elif action == 'delete':
-                            LOG.info('deleting %s (%s)',
-                                     msg_id, message['subject'])
-                            conn.add_flags([msg_id], [imapclient.DELETED])
+                        action = actions.factory(rule.get_action())
+                        action.invoke(conn, msg_id, message)
                         # At this point we've processed the message
                         # based on one rule, so there is no need to
                         # look at the other rules.

@@ -33,12 +33,14 @@ class Rule:
     _log = logging.getLogger(__name__)
 
     def __init__(self, rule_data):
-        self._log.debug('{} rule: {!r}'.format(
-            self.__class__.__name__, rule_data))
+        self._log.debug('new %r', rule_data)
         self._data = rule_data
 
     def check(self):
         raise NotImplementedError()
+
+    def get_action(self):
+        return self._data.get('action', {})
 
 
 class Or(Rule):
@@ -88,9 +90,9 @@ class HeaderSubString(Rule):
     def __init__(self, rule_data):
         super().__init__(rule_data)
         self._header_name = rule_data['name']
-        self._substring = rule_data['substring']
+        self._substring = rule_data['substring'].lower()
 
     def check(self, message):
-        header_value = message[self._header_name]
-        self._log.debug('looking for %r in %r', self._substring, header_value)
+        header_value = message[self._header_name].lower()
+        self._log.debug('%r in %r', self._substring, header_value)
         return (self._substring in header_value)
