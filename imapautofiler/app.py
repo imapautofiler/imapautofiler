@@ -70,18 +70,27 @@ def process_rules(cfg, debug):
                                 match = False
                                 break
                     if match:
-                        LOG.info('moving %s (%s) to %s',
-                                 msg_id, message['subject'],
-                                 rule['dest-mailbox'])
-                        dest_mailbox = rule['dest-mailbox']
-                        response = conn.copy(
-                            [msg_id],
-                            dest_mailbox,
-                        )
-                        response = conn.add_flags(
-                            [msg_id],
-                            [imapclient.DELETED],
-                        )
+                        action = rule['action']['name']
+                        if action == 'move':
+                            LOG.info('moving %s (%s) to %s',
+                                     msg_id, message['subject'],
+                                     rule['dest-mailbox'])
+                            dest_mailbox = rule['action']['dest-mailbox']
+                            response = conn.copy(
+                                [msg_id],
+                                dest_mailbox,
+                            )
+                            response = conn.add_flags(
+                                [msg_id],
+                                [imapclient.DELETED],
+                            )
+                        elif action == 'delete':
+                            LOG.info('deleting %s (%s)',
+                                     msg_id, message['subject'])
+                            response = conn.add_flags(
+                                [msg_id],
+                                [imapclient.DELETED],
+                            )
                         # At this point we've processed the message
                         # based on one rule, so there is no need to
                         # look at the other rules.
