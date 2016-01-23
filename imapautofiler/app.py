@@ -94,27 +94,29 @@ def main(args=None):
             conn.select(
                 mailbox='"{}"'.format(mailbox_name).encode('utf-8'),
             )
+
             typ, [msg_ids] = conn.search(None, b'ALL')
             msg_ids = msg_ids.decode('utf-8').split(' ')
-            print(mailbox_name, typ, msg_ids)
-
             for msg_id in msg_ids:
+                # Get the body of the message and create a Message object.
                 email_parser = email.parser.BytesFeedParser()
                 typ, msg_data = conn.fetch(msg_id, '(BODY.PEEK[HEADER] FLAGS)')
-                pprint.pprint(msg_data)
-                print()
                 for block in msg_data[0][1:]:
                     email_parser.feed(block)
                 message = email_parser.close()
+                LOG.debug('message %s: %s', msg_id, message['subject'])
 
-                print(message.as_string())
                 for rule in mailbox['rules']:
                     match = True
                     for header in rule['headers']:
-                        LOG.debug('Checking header %s', header['name'])
-                        header_value = message[header['name']]
+                        LOG.debug('checking header %r', header['name'])
+                        header_value = message[header['name']] or ''
                         if 'substring' in header:
                             # simple substring rule
+                            LOG.debug('message[%s] = %r',
+                                      header['name'], header_value)
+                            LOG.debug('looking for substring %r',
+                                      header['substring'])
                             if header['substring'] not in header_value:
                                 # this header doesn't match, so the
                                 # rule fails, so move to the next rule
@@ -124,6 +126,8 @@ def main(args=None):
                         LOG.info('moving %s (%s) to %s',
                                  msg_id, message['subject'],
                                  rule['dest-mailbox'])
+                    else:
+                        LOG.debug('no rules match')
     finally:
 #        conn.close()
         conn.logout()
