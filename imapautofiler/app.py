@@ -20,9 +20,24 @@ import logging
 import sys
 
 from imapautofiler import config
+from imapautofiler import rules
 import imapclient
 
 LOG = logging.getLogger(__name__)
+
+
+def get_message(conn, msg_id):
+    """Return a Message from the current mailbox.
+
+    Get the body of the message and create a Message object, one line
+    at a time (skipping the first line that includes the server
+    response).
+
+    """
+    email_parser = email.parser.BytesFeedParser()
+    response = conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
+    email_parser.feed(response[msg_id][b'BODY[HEADER]'])
+    return email_parser.close()
 
 
 def process_rules(cfg, debug):
@@ -38,59 +53,34 @@ def process_rules(cfg, debug):
             mailbox_name = mailbox['name']
             conn.select_folder(mailbox_name)
 
+            mailbox_rules = [
+                rules.factory(r)
+                for r in mailbox['rules']
+            ]
+
             msg_ids = conn.search(['ALL'])
 
             for msg_id in msg_ids:
-                # Get the body of the message and create a Message
-                # object, one line at a time (skipping the first line
-                # that includes the server response).
-                email_parser = email.parser.BytesFeedParser()
-                response = conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
-                email_parser.feed(response[msg_id][b'BODY[HEADER]'])
-                message = email_parser.close()
+                message = get_message(conn, msg_id)
                 if debug:
                     print(message.as_string().rstrip())
                 else:
                     LOG.debug('message %s: %s', msg_id, message['subject'])
 
-                for rule in mailbox['rules']:
-                    match = True
-                    for header in rule['headers']:
-                        LOG.debug('checking header %r', header['name'])
-                        header_value = message[header['name']] or ''
-                        if 'substring' in header:
-                            # simple substring rule
-                            LOG.debug('message[%s] = %r',
-                                      header['name'], header_value)
-                            LOG.debug('looking for substring %r',
-                                      header['substring'])
-                            if header['substring'] not in header_value:
-                                # this header doesn't match, so the
-                                # rule fails, so move to the next rule
-                                match = False
-                                break
-                    if match:
-                        action = rule['action']['name']
+                for rule in mailbox_rules:
+                    if rule.check(message):
+                        action = rule._data['action']['name']
                         if action == 'move':
                             LOG.info('moving %s (%s) to %s',
                                      msg_id, message['subject'],
-                                     rule['dest-mailbox'])
-                            dest_mailbox = rule['action']['dest-mailbox']
-                            response = conn.copy(
-                                [msg_id],
-                                dest_mailbox,
-                            )
-                            response = conn.add_flags(
-                                [msg_id],
-                                [imapclient.DELETED],
-                            )
+                                     rule._data['action']['dest-mailbox'])
+                            dest_mailbox = rule._data['action']['dest-mailbox']
+                            conn.copy([msg_id], dest_mailbox)
+                            conn.add_flags([msg_id], [imapclient.DELETED])
                         elif action == 'delete':
                             LOG.info('deleting %s (%s)',
                                      msg_id, message['subject'])
-                            response = conn.add_flags(
-                                [msg_id],
-                                [imapclient.DELETED],
-                            )
+                            conn.add_flags([msg_id], [imapclient.DELETED])
                         # At this point we've processed the message
                         # based on one rule, so there is no need to
                         # look at the other rules.
@@ -101,7 +91,7 @@ def process_rules(cfg, debug):
                 # break
 
             # Remove messages that we just moved.
-            response = conn.expunge()
+            conn.expunge()
     finally:
         try:
             conn.close()
@@ -141,7 +131,7 @@ def main(args=None):
 
     logging.basicConfig(
         level=log_level,
-        format='%(message)s',
+        format='%(name)s: %(message)s',
     )
     logging.debug('starting')
 
