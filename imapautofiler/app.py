@@ -50,17 +50,28 @@ def main(args=None):
         '-v', '--verbose',
         action='store_true',
         default=False,
+        help='report more details about what is happening',
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        default=False,
+        help='turn on imaplib debugging output',
     )
     parser.add_argument(
         '-c', '--config-file',
         default='~/.imapautofiler.yml',
     )
     args = parser.parse_args()
+
+    if args.debug:
+        imaplib.Debug = 4
+
     if args.verbose:
         log_level = logging.DEBUG
-        imaplib.Debug = 4
     else:
         log_level = logging.INFO
+
     logging.basicConfig(
         level=log_level,
         format='%(message)s',
