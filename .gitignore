@@ -14,3 +14,4 @@ dist/
 .testrepository/
 .project
 pbr-*.egg/
+cover/
