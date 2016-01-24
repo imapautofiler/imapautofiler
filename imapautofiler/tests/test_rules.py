@@ -55,7 +55,6 @@ class TestOr(base.TestCase):
     def setUp(self):
         super().setUp()
         self.msg = email.parser.Parser().parsestr(MESSAGE)
-        print(self.msg['to'])
 
     def test_create_recursive(self):
         rule_def = {
@@ -70,14 +69,14 @@ class TestOr(base.TestCase):
                 ],
             },
         }
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
         self.assertIsInstance(r._sub_rules[0], rules.Headers)
         self.assertIsInstance(r._sub_rules[1], rules.Headers)
         self.assertEqual(len(r._sub_rules), 2)
 
     def test_check_pass_first(self):
         rule_def = {'or': {'rules': []}}
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
         r._sub_rules.append(r1)
@@ -88,7 +87,7 @@ class TestOr(base.TestCase):
 
     def test_check_short_circuit(self):
         rule_def = {'or': {'rules': []}}
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
         r._sub_rules.append(r1)
@@ -99,7 +98,7 @@ class TestOr(base.TestCase):
 
     def test_check_pass_second(self):
         rule_def = {'or': {'rules': []}}
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
         r._sub_rules.append(r1)
@@ -110,7 +109,7 @@ class TestOr(base.TestCase):
 
     def test_check_no_match(self):
         rule_def = {'or': {'rules': []}}
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
         r._sub_rules.append(r1)
@@ -121,5 +120,6 @@ class TestOr(base.TestCase):
 
     def test_check_no_subrules(self):
         rule_def = {'or': {'rules': []}}
-        r = rules.factory(rule_def, {})
+        r = rules.Or(rule_def, {})
+        self.assertFalse(r.check(self.msg))
         self.assertFalse(r.check(self.msg))
