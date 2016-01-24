@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import logging
 
 
@@ -27,7 +28,7 @@ def factory(rule_data, cfg):
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
 
 
-class Rule:
+class Rule(metaclass=abc.ABCMeta):
     "Base class"
 
     _log = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class Rule:
         self._data = rule_data
         self._cfg = cfg
 
+    @abc.abstractmethod
     def check(self):
         raise NotImplementedError()
 
