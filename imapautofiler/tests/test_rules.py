@@ -28,7 +28,8 @@ Subject: Re: reply to previous message
 Date: Sat, 23 Jan 2016 16:19:10 -0500
 X-Universally-Unique-Identifier: CC844EE1-C406-4ABA-9DA5-685759BBC15A
 References: <33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>
-To: recipient@example.com
+To: recipient1@example.com
+CC: recipient2@example.com
 In-Reply-To: <33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>
 """.lstrip()
 
@@ -51,30 +52,83 @@ class TestFactory(unittest.TestCase):
 
 class TestOr(base.TestCase):
 
-    rule_def = {
-        'or': {
-            'rules': [
-                {'headers': [
-                    {'name': 'to',
-                     'substring': 'recipient@example.com'}]},
-                {'headers': [
-                    {'name': 'cc',
-                     'substring': 'recipient@example.com'}]}
-            ],
-        },
-    }
-
     def setUp(self):
         super().setUp()
         self.msg = email.parser.Parser().parsestr(MESSAGE)
         print(self.msg['to'])
 
     def test_create_recursive(self):
-        r = rules.factory(self.rule_def, {})
+        rule_def = {
+            'or': {
+                'rules': [
+                    {'headers': [
+                        {'name': 'to',
+                         'substring': 'recipient1@example.com'}]},
+                    {'headers': [
+                        {'name': 'cc',
+                         'substring': 'recipient1@example.com'}]}
+                ],
+            },
+        }
+        r = rules.factory(rule_def, {})
         self.assertIsInstance(r._sub_rules[0], rules.Headers)
         self.assertIsInstance(r._sub_rules[1], rules.Headers)
         self.assertEqual(len(r._sub_rules), 2)
 
-    def test_check_pass_one(self):
-        r = rules.factory(self.rule_def, {})
+    def test_check_pass_first(self):
+        rule_def = {
+            'or': {
+                'rules': [
+                    {'headers': [
+                        {'name': 'to',
+                         'substring': 'recipient1@example.com'}]},
+                    {'headers': [
+                        {'name': 'cc',
+                         'substring': 'recipient1@example.com'}]}
+                ],
+            },
+        }
+        r = rules.factory(rule_def, {})
         self.assertTrue(r.check(self.msg))
+
+    def test_check_pass_second(self):
+        rule_def = {
+            'or': {
+                'rules': [
+                    {'headers': [
+                        {'name': 'to',
+                         'substring': 'recipient3@example.com'}]},
+                    {'headers': [
+                        {'name': 'cc',
+                         'substring': 'recipient2@example.com'}]}
+                ],
+            },
+        }
+        r = rules.factory(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_check_no_match(self):
+        rule_def = {
+            'or': {
+                'rules': [
+                    {'headers': [
+                        {'name': 'to',
+                         'substring': 'recipient3@example.com'}]},
+                    {'headers': [
+                        {'name': 'cc',
+                         'substring': 'recipient3@example.com'}]}
+                ],
+            },
+        }
+        r = rules.factory(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+    def test_check_no_subrules(self):
+        rule_def = {
+            'or': {
+                'rules': [
+                ],
+            },
+        }
+        r = rules.factory(rule_def, {})
+        self.assertFalse(r.check(self.msg))
