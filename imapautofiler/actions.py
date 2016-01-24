@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import logging
 
 import imapclient
@@ -27,7 +28,7 @@ def factory(action_data, cfg):
     raise ValueError('unrecognized rule action {!r}'.format(action_data))
 
 
-class Action:
+class Action(metaclass=abc.ABCMeta):
     "Base class"
 
     _log = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class Action:
         self._cfg = cfg
         self._log.debug('new: %r', action_data)
 
+    @abc.abstractmethod
     def invoke(self, conn, message_id, message):
         raise NotImplementedError()
 
