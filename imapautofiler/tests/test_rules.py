@@ -153,4 +153,64 @@ class TestHeaderSubString(base.TestCase):
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertFalse(r.check(self.msg))
+
+
+class TestHeaders(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.msg = email.parser.Parser().parsestr(MESSAGE)
+
+    def test_create_recursive(self):
+        rule_def = {
+            'headers': [
+                {'name': 'to',
+                 'substring': 'recipient1@example.com'},
+                {'name': 'cc',
+                 'substring': 'recipient1@example.com'},
+            ],
+        }
+        r = rules.Headers(rule_def, {})
+        self.assertIsInstance(r._matchers[0], rules.HeaderSubString)
+        self.assertIsInstance(r._matchers[1], rules.HeaderSubString)
+        self.assertEqual(len(r._matchers), 2)
+
+    def test_check_no_short_circuit(self):
+        rule_def = {'or': {'rules': []}}
+        r = rules.Headers(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = True
+        r._matchers.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = True
+        r._matchers.append(r2)
+        self.assertTrue(r.check(self.msg))
+        r1.check.assert_called_once_with(self.msg)
+        r2.check.assert_called_once_with(self.msg)
+
+    def test_fail_one(self):
+        rule_def = {'or': {'rules': []}}
+        r = rules.Headers(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = False
+        r._matchers.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = True
+        r._matchers.append(r2)
+        self.assertFalse(r.check(self.msg))
+
+    def test_check_no_match(self):
+        rule_def = {'or': {'rules': []}}
+        r = rules.Headers(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = False
+        r._matchers.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = False
+        r._matchers.append(r2)
+        self.assertFalse(r.check(self.msg))
+
+    def test_check_no_matchers(self):
+        rule_def = {'or': {'rules': []}}
+        r = rules.Headers(rule_def, {})
         self.assertFalse(r.check(self.msg))
