@@ -10,28 +10,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import email.parser
 import unittest
 import unittest.mock as mock
 
 from imapautofiler import rules
 from imapautofiler.tests import base
-
-MESSAGE = """
-From: Sender Name <sender@example.com>
-Content-Type: multipart/alternative;
-    boundary="Apple-Mail=_F10D7C06-52F7-4F60-BEC9-4D5F29A9BFE1"
-Message-Id: <4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>
-Mime-Version: 1.0 (Mac OS X Mail 9.2 \(3112\))
-X-Smtp-Server: AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9
-Subject: Re: reply to previous message
-Date: Sat, 23 Jan 2016 16:19:10 -0500
-X-Universally-Unique-Identifier: CC844EE1-C406-4ABA-9DA5-685759BBC15A
-References: <33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>
-To: recipient1@example.com
-CC: recipient2@example.com
-In-Reply-To: <33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>
-""".lstrip()
 
 
 class TestFactory(unittest.TestCase):
@@ -51,10 +34,6 @@ class TestFactory(unittest.TestCase):
 
 
 class TestOr(base.TestCase):
-
-    def setUp(self):
-        super().setUp()
-        self.msg = email.parser.Parser().parsestr(MESSAGE)
 
     def test_create_recursive(self):
         rule_def = {
@@ -126,10 +105,6 @@ class TestOr(base.TestCase):
 
 class TestHeaderSubString(base.TestCase):
 
-    def setUp(self):
-        super().setUp()
-        self.msg = email.parser.Parser().parsestr(MESSAGE)
-
     def test_match(self):
         rule_def = {
             'name': 'to',
@@ -156,10 +131,6 @@ class TestHeaderSubString(base.TestCase):
 
 
 class TestHeaders(base.TestCase):
-
-    def setUp(self):
-        super().setUp()
-        self.msg = email.parser.Parser().parsestr(MESSAGE)
 
     def test_create_recursive(self):
         rule_def = {
