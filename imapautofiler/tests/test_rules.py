@@ -122,4 +122,35 @@ class TestOr(base.TestCase):
         rule_def = {'or': {'rules': []}}
         r = rules.Or(rule_def, {})
         self.assertFalse(r.check(self.msg))
+
+
+class TestHeaderSubString(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.msg = email.parser.Parser().parsestr(MESSAGE)
+
+    def test_match(self):
+        rule_def = {
+            'name': 'to',
+            'substring': 'recipient1@example.com',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_no_match(self):
+        rule_def = {
+            'name': 'to',
+            'substring': 'not_the_recipient1@example.com',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+    def test_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'substring': 'recipient1@example.com',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertFalse(r.check(self.msg))
         self.assertFalse(r.check(self.msg))
