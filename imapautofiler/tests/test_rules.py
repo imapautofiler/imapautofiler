@@ -76,59 +76,50 @@ class TestOr(base.TestCase):
         self.assertEqual(len(r._sub_rules), 2)
 
     def test_check_pass_first(self):
-        rule_def = {
-            'or': {
-                'rules': [
-                    {'headers': [
-                        {'name': 'to',
-                         'substring': 'recipient1@example.com'}]},
-                    {'headers': [
-                        {'name': 'cc',
-                         'substring': 'recipient1@example.com'}]}
-                ],
-            },
-        }
+        rule_def = {'or': {'rules': []}}
         r = rules.factory(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = True
+        r._sub_rules.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = False
+        r._sub_rules.append(r2)
+        self.assertTrue(r.check(self.msg))
+
+    def test_check_short_circuit(self):
+        rule_def = {'or': {'rules': []}}
+        r = rules.factory(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = True
+        r._sub_rules.append(r1)
+        r2 = mock.Mock()
+        r2.check.side_effect = AssertionError('r2 should not be called')
+        r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
     def test_check_pass_second(self):
-        rule_def = {
-            'or': {
-                'rules': [
-                    {'headers': [
-                        {'name': 'to',
-                         'substring': 'recipient3@example.com'}]},
-                    {'headers': [
-                        {'name': 'cc',
-                         'substring': 'recipient2@example.com'}]}
-                ],
-            },
-        }
+        rule_def = {'or': {'rules': []}}
         r = rules.factory(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = False
+        r._sub_rules.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = True
+        r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
     def test_check_no_match(self):
-        rule_def = {
-            'or': {
-                'rules': [
-                    {'headers': [
-                        {'name': 'to',
-                         'substring': 'recipient3@example.com'}]},
-                    {'headers': [
-                        {'name': 'cc',
-                         'substring': 'recipient3@example.com'}]}
-                ],
-            },
-        }
+        rule_def = {'or': {'rules': []}}
         r = rules.factory(rule_def, {})
+        r1 = mock.Mock()
+        r1.check.return_value = False
+        r._sub_rules.append(r1)
+        r2 = mock.Mock()
+        r2.check.return_value = False
+        r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
     def test_check_no_subrules(self):
-        rule_def = {
-            'or': {
-                'rules': [
-                ],
-            },
-        }
+        rule_def = {'or': {'rules': []}}
         r = rules.factory(rule_def, {})
         self.assertFalse(r.check(self.msg))
