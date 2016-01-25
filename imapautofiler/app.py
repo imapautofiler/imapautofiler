@@ -25,7 +25,7 @@ from imapautofiler import actions
 from imapautofiler import config
 from imapautofiler import rules
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('imapautofiler')
 
 
 def get_message(conn, msg_id):
@@ -48,6 +48,9 @@ def list_mailboxes(cfg, debug, conn):
 
 
 def process_rules(cfg, debug, conn):
+    num_messages = 0
+    num_processed = 0
+
     for mailbox in cfg['mailboxes']:
         mailbox_name = mailbox['name']
         conn.select_folder(mailbox_name)
@@ -60,6 +63,7 @@ def process_rules(cfg, debug, conn):
         msg_ids = conn.search(['ALL'])
 
         for msg_id in msg_ids:
+            num_messages += 1
             message = get_message(conn, msg_id)
             if debug:
                 print(message.as_string().rstrip())
@@ -73,6 +77,7 @@ def process_rules(cfg, debug, conn):
                     # At this point we've processed the message
                     # based on one rule, so there is no need to
                     # look at the other rules.
+                    num_processed += 1
                     break
                 else:
                     LOG.debug('no rules match')
@@ -81,6 +86,8 @@ def process_rules(cfg, debug, conn):
 
         # Remove messages that we just moved.
         conn.expunge()
+    LOG.info('encountered %s messages, processed %s',
+             num_messages, num_processed)
     return
 
 
