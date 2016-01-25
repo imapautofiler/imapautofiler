@@ -12,6 +12,7 @@
 
 import abc
 import logging
+import re
 
 
 def factory(rule_data, cfg):
@@ -76,6 +77,8 @@ class Headers(Rule):
         for header in rule_data.get('headers', []):
             if 'substring' in header:
                 self._matchers.append(HeaderSubString(header, cfg))
+            elif 'regex' in header:
+                self._matchers.append(HeaderRegex(header, cfg))
             else:
                 raise ValueError('unknown header matcher {!r}'.format(header))
 
@@ -99,3 +102,18 @@ class HeaderSubString(Rule):
         header_value = message.get(self._header_name, '').lower()
         self._log.debug('%r in %r', self._substring, header_value)
         return (self._substring in header_value)
+
+
+class HeaderRegex(Rule):
+
+    _log = logging.getLogger('HeaderRegex')
+
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
+        self._header_name = rule_data['name']
+        self._regex = re.compile(rule_data['regex'].lower())
+
+    def check(self, message):
+        header_value = message.get(self._header_name, '').lower()
+        self._log.debug('%r in %r', self._regex.pattern, header_value)
+        return bool(self._regex.search(header_value))

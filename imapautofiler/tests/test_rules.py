@@ -130,6 +130,33 @@ class TestHeaderSubString(base.TestCase):
         self.assertFalse(r.check(self.msg))
 
 
+class TestHeaderRegex(base.TestCase):
+
+    def test_match(self):
+        rule_def = {
+            'name': 'to',
+            'regex': 'recipient.*@example.com',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_no_match(self):
+        rule_def = {
+            'name': 'to',
+            'regex': 'not_the_recipient.*@example.com',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+    def test_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'regex': 'not_the_recipient.*@example.com',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+
 class TestHeaders(base.TestCase):
 
     def test_create_recursive(self):
