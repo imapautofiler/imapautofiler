@@ -26,6 +26,8 @@ def factory(rule_data, cfg):
         return Or(rule_data, cfg)
     if 'headers' in rule_data:
         return Headers(rule_data, cfg)
+    if 'recipient' in rule_data:
+        return Recipient(rule_data, cfg)
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
 
 
@@ -64,6 +66,24 @@ class Or(Rule):
             self._log.debug('no sub-rules')
             return False
         return any(r.check(message) for r in self._sub_rules)
+
+
+class Recipient(Or):
+    "True if any recipient sub-rule matches."
+
+    _log = logging.getLogger('Recipient')
+
+    def __init__(self, rule_data, cfg):
+        rules = []
+        for header in ['to', 'cc']:
+            header_data = {}
+            header_data.update(rule_data['recipient'])
+            header_data['name'] = header
+            rules.append({'headers': [header_data]})
+        rule_data['or'] = {
+            'rules': rules,
+        }
+        super().__init__(rule_data, cfg)
 
 
 class Headers(Rule):

@@ -212,3 +212,34 @@ class TestHeaders(base.TestCase):
         rule_def = {'or': {'rules': []}}
         r = rules.Headers(rule_def, {})
         self.assertFalse(r.check(self.msg))
+
+
+class TestRecipient(base.TestCase):
+
+    def test_create_recursive(self):
+        rule_def = {
+            'recipient': {'substring': 'recipient1@example.com'},
+        }
+        r = rules.Recipient(rule_def, {})
+        self.assertEquals(
+            {
+                'recipient': {'substring': 'recipient1@example.com'},
+                'or': {
+                    'rules': [
+                        {
+                            'headers': [{
+                                'name': 'to',
+                                'substring': 'recipient1@example.com',
+                            }],
+                        },
+                        {
+                            'headers': [{
+                                'name': 'cc',
+                                'substring': 'recipient1@example.com',
+                            }],
+                        },
+                    ],
+                },
+            },
+            r._data,
+        )
