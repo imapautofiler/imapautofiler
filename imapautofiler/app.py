@@ -15,6 +15,7 @@
 
 import argparse
 import email.parser
+import getpass
 import imaplib
 import logging
 import sys
@@ -138,7 +139,11 @@ def main(args=None):
             use_uid=True,
             ssl=True,
         )
-        conn.login(cfg['server']['username'], cfg['server']['password'])
+        username = cfg['server']['username']
+        password = cfg['server'].get('password')
+        if not password:
+            password = getpass.getpass('Password for {}:'.format(username))
+        conn.login(username, password)
         try:
             if args.list_mailboxes:
                 list_mailboxes(cfg, args.debug, conn)
