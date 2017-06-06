@@ -7,3 +7,4 @@ on rules for matching properties such as the recipient or header
 content.
 
 * Github: https://github.com/dhellmann/imapautofiler
+* Documentation: http://imapautofiler.readthedocs.io/
