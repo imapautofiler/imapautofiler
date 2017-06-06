@@ -14,6 +14,7 @@ the appropriate archive folders.
    installing
    configuring
    running
+   contributing
 
 Indices and tables
 ==================
