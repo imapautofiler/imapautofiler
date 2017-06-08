@@ -32,9 +32,7 @@ LOG = logging.getLogger('imapautofiler')
 def get_message(conn, msg_id):
     """Return a Message from the current mailbox.
 
-    Get the body of the message and create a Message object, one line
-    at a time (skipping the first line that includes the server
-    response).
+    Get the body of the message and create a Message object.
 
     """
     email_parser = email.parser.BytesFeedParser()
