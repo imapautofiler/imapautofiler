@@ -11,7 +11,7 @@ Server Connection
 
 Each configuration file can hold one server specification.
 
-::
+.. code-block:: yaml
 
   server:
     hostname: example.com
@@ -19,7 +19,7 @@ Each configuration file can hold one server specification.
 
 The connection section can optionally include a password.
 
-::
+.. code-block:: yaml
 
   server:
     hostname: example.com
@@ -64,7 +64,7 @@ The ``trash`` action, for discarding messages without deleting them
 immediately, requires a configuration setting to know the name of the
 trash mailbox. There is no default value.
 
-::
+.. code-block:: yaml
 
   trash-mailbox: INBOX.Trash
 
