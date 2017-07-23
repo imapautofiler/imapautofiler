@@ -6,11 +6,13 @@ python:
   - "nightly"
 
 # Test the nightly build of cpython, but ignore any failures.
+# Add separate test environments for the docs and flake8 linter.
 matrix:
   allow_failures:
     - python: "nightly"
   include:
-    - env: SPHINX=true
+    - env: BUILD=docs
+    - env: BUILD=linter
 
 # travis pre-installs some packages that may conflict with
 # testrepository, so remove them before we set ourselves up. Also
@@ -23,6 +25,4 @@ before_install:
 install: pip install .[test] .[docs]
 
 script:
-  - python setup.py test --coverage --slowest --testr-args=''
-  - coverage report --show-missing
-  - ./tools/travis-sphinx.sh
+  - ./tools/travis.sh
