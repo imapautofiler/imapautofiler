@@ -32,6 +32,11 @@ LOG = logging.getLogger('imapautofiler')
 def get_message(conn, msg_id):
     """Return a Message from the current mailbox.
 
+    :param conn: IMAP server connection
+    :type conn: imapclient.IMAPClient
+    :param msg_id: ID of the message, according to the server
+    :type msg_id: str
+
     Get the body of the message and create a Message object.
 
     """
@@ -42,11 +47,33 @@ def get_message(conn, msg_id):
 
 
 def list_mailboxes(cfg, debug, conn):
+    """Print a list of the mailboxes.
+
+    :param cfg: full configuration
+    :type cfg: dict
+    :param debug: flag to control debug output
+    :type debug: bool
+    :param conn: IMAP server onnection
+    :type conn: imapclient.IMAPClient
+
+    Used by the ``--list-mailboxes`` switch.
+
+    """
     for f in conn.list_folders():
         print(f[-1])
 
 
 def process_rules(cfg, debug, conn):
+    """Run the rules from the configuration file.
+
+    :param cfg: full configuration
+    :type cfg: dict
+    :param debug: flag to control debug output
+    :type debug: bool
+    :param conn: IMAP server onnection
+    :type conn: imapclient.IMAPClient
+
+    """
     num_messages = 0
     num_processed = 0
 

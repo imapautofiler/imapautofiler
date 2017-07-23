@@ -18,6 +18,11 @@ import re
 def factory(rule_data, cfg):
     """Create a rule processor.
 
+    :param rule_data: portion of configuration describing the rule
+    :type rule_data: dict
+    :param cfg: full configuration data
+    :type cfg: dict
+
     Using the rule type, instantiate a rule processor that can check
     the rule against a message.
 
@@ -37,12 +42,28 @@ class Rule(metaclass=abc.ABCMeta):
     _log = logging.getLogger(__name__)
 
     def __init__(self, rule_data, cfg):
+        """Initialize the rule.
+
+        :param rule_data: data describing the rule
+        :type rule_data: dict
+        :param cfg: full configuration data
+        :type cfg: dict
+
+        """
         self._log.debug('new %r', rule_data)
         self._data = rule_data
         self._cfg = cfg
 
     @abc.abstractmethod
-    def check(self):
+    def check(self, message):
+        """Test the rule on the message.
+
+        :param conn: connection to IMAP server
+        :type conn: imapclient.IMAPClient
+        :param message: the message object to process
+        :type message: email.message.Message
+
+        """
         raise NotImplementedError()
 
     def get_action(self):
@@ -50,7 +71,14 @@ class Rule(metaclass=abc.ABCMeta):
 
 
 class Or(Rule):
-    "True if any one of the sub-rules is true."
+    """True if any one of the sub-rules is true.
+
+    The rule data must contain a ``rules`` list with other rules
+    specifications.
+
+    Actions on the sub-rules are ignored.
+
+    """
 
     _log = logging.getLogger('Or')
 
@@ -69,7 +97,13 @@ class Or(Rule):
 
 
 class Recipient(Or):
-    "True if any recipient sub-rule matches."
+    """True if any recipient sub-rule matches.
+
+    The rule data must contain a ``recipient`` mapping containing
+    either a ``substring`` key mapped to a simple string or a
+    ``regex`` key mapped to a regular expression.
+
+    """
 
     _log = logging.getLogger('Recipient')
 
@@ -87,7 +121,15 @@ class Recipient(Or):
 
 
 class Headers(Rule):
-    "True if all of the headers match."
+    """True if all of the headers match.
+
+    The rule data must contain a ``headers`` list of mappings
+    containing a ``name`` for the header itself and either a
+    ``substring`` key mapped to a simple string or a ``regex`` key
+    mapped to a regular expression to be matched against the value of
+    the header.
+
+    """
 
     _log = logging.getLogger('Headers')
 
@@ -110,6 +152,7 @@ class Headers(Rule):
 
 
 class HeaderSubString(Rule):
+    "Implements substring matching for headers."
 
     _log = logging.getLogger('HeaderSubString')
 
@@ -125,6 +168,7 @@ class HeaderSubString(Rule):
 
 
 class HeaderRegex(Rule):
+    "Implements regular expression matching for headers."
 
     _log = logging.getLogger('HeaderRegex')
 

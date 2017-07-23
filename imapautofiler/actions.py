@@ -17,7 +17,17 @@ import imapclient
 
 
 def factory(action_data, cfg):
-    "Create an Action instance."
+    """Create an Action instance.
+
+    :param action_data: portion of configuration describing the action
+    :type action_data: dict
+    :param cfg: full configuration data
+    :type cfg: dict
+
+    Using the action type, instantiate an action object that can
+    process a message.
+
+    """
     name = action_data.get('name')
     if name == 'move':
         return Move(action_data, cfg)
@@ -34,16 +44,42 @@ class Action(metaclass=abc.ABCMeta):
     _log = logging.getLogger(__name__)
 
     def __init__(self, action_data, cfg):
+        """Initialize the action.
+
+        :param action_data: data describing the action
+        :type action_data: dict
+        :param cfg: full configuration data
+        :type cfg: dict
+
+        """
         self._data = action_data
         self._cfg = cfg
         self._log.debug('new: %r', action_data)
 
     @abc.abstractmethod
     def invoke(self, conn, message_id, message):
+        """Run the action on the message.
+
+        :param conn: connection to IMAP server
+        :type conn: imapclient.IMAPClient
+        :param message_id: ID of the message to process
+        :type message_id: str
+        :param message: the message object to process
+        :type message: email.message.Message
+
+        """
         raise NotImplementedError()
 
 
 class Move(Action):
+    """Move the message to a different folder.
+
+    The action is indicated with the name ``move``.
+
+    The action data must contain a ``dest-mailbox`` entry with the
+    name of the destination mailbox.
+
+    """
 
     _log = logging.getLogger('Move')
 
@@ -61,6 +97,14 @@ class Move(Action):
 
 
 class Trash(Move):
+    """Move the message to the trashcan.
+
+    The action is indicated with the name ``trash``.
+
+    The action expects the global configuration setting
+    ``trash-mailbox``.
+
+    """
 
     _log = logging.getLogger('Trash')
 
@@ -73,6 +117,11 @@ class Trash(Move):
 
 
 class Delete(Action):
+    """Delete the message immediately.
+
+    The action is indicated with the name ``delete``.
+
+    """
 
     _log = logging.getLogger('Delete')
 

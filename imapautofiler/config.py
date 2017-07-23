@@ -19,6 +19,15 @@ LOG = logging.getLogger(__name__)
 
 
 def get_config(filename):
+    """Return the configuration data.
+
+    :param filename: name of configuration file to read
+    :type filename: str
+
+    Read ``filename`` and parse it as a YAML file, then return the
+    results.
+
+    """
     filename = os.path.expanduser(filename)
     LOG.debug('loading config from %s', filename)
     with open(filename, 'r', encoding='utf-8') as f:
