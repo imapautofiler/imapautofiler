@@ -14,16 +14,24 @@
 """
 
 import abc
+import contextlib
 import email.parser
 import getpass
+import logging
+import mailbox
+import os
 
 import imapclient
+
+LOG = logging.getLogger('imapautofiler.client')
 
 
 def open_connection(cfg):
     "Open a connection to the mail server."
     if 'server' in cfg:
         return IMAPClient(cfg)
+    if 'maildir' in cfg:
+        return MaildirClient(cfg)
     raise ValueError('Could not find connection information in config')
 
 
@@ -152,3 +160,47 @@ class IMAPClient(Client):
         except:
             pass
         self._conn.logout()
+
+
+class MaildirClient(Client):
+
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._root = os.path.expanduser(cfg['maildir'])
+        LOG.debug('maildir: %s', self._root)
+
+    @contextlib.contextmanager
+    def _locked(self, mailbox_name):
+        path = os.path.join(self._root, mailbox_name)
+        LOG.debug('locking %s', path)
+        box = mailbox.Maildir(path)
+        box.lock()
+        try:
+            yield box
+        finally:
+            box.flush()
+            box.close()
+
+    def list_mailboxes(self):
+        # NOTE: We don't use Maildir to open root because it is a
+        # parent directory but not a maildir.
+        return sorted(os.listdir(self._root))
+
+    def mailbox_iterate(self, mailbox_name):
+        with self._locked(mailbox_name) as box:
+            results = list(box.iteritems())
+        return results
+
+    def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
+        with self._locked(dest_mailbox) as box:
+            box.add(message)
+
+    def delete_message(self, src_mailbox, message_id, message):
+        with self._locked(src_mailbox) as box:
+            box.remove(message_id)
+
+    def expunge(self):
+        pass
+
+    def close(self):
+        pass

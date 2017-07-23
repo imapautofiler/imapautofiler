@@ -36,6 +36,25 @@ If the password is not provided in the configuration file,
 ``imapautofiler`` will prompt for a value when it tries to connect to
 the server.
 
+Maildir Location
+================
+
+As an alternative to a server specification, the configuration file
+can refer to a local directory containing one or more Maildir
+folders. This is especially useful when combining imapautofiler with
+offlineimap_.
+
+.. code-block:: yaml
+
+   maildir: ~/Mail
+
+.. note::
+
+   The directory specified should not itself be a Maildir. It must be
+   a regular directory with nested Maildir folders.
+
+.. _offlineimap: http://www.offlineimap.org
+
 .. _trash-mailbox:
 
 Trash Mailbox
