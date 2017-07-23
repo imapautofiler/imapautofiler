@@ -13,8 +13,6 @@
 import abc
 import logging
 
-import imapclient
-
 
 def factory(action_data, cfg):
     """Create an Action instance.
@@ -57,11 +55,13 @@ class Action(metaclass=abc.ABCMeta):
         self._log.debug('new: %r', action_data)
 
     @abc.abstractmethod
-    def invoke(self, conn, message_id, message):
+    def invoke(self, conn, mailbox_name, message_id, message):
         """Run the action on the message.
 
-        :param conn: connection to IMAP server
-        :type conn: imapclient.IMAPClient
+        :param conn: connection to mail server
+        :type conn: imapautofiler.client.Client
+        :param mailbox_name: name of the mailbox holding the message
+        :type mailbox_name: str
         :param message_id: ID of the message to process
         :type message_id: str
         :param message: the message object to process
@@ -87,13 +87,17 @@ class Move(Action):
         super().__init__(action_data, cfg)
         self._dest_mailbox = self._data.get('dest-mailbox')
 
-    def invoke(self, conn, message_id, message):
+    def invoke(self, conn, src_mailbox, message_id, message):
         self._log.info(
             '%s (%s) to %s',
             message_id, message['subject'],
             self._dest_mailbox)
-        conn.copy([message_id], self._dest_mailbox)
-        conn.add_flags([message_id], [imapclient.DELETED])
+        conn.move_message(
+            src_mailbox,
+            self._dest_mailbox,
+            message_id,
+            message,
+        )
 
 
 class Trash(Move):
@@ -125,6 +129,10 @@ class Delete(Action):
 
     _log = logging.getLogger('Delete')
 
-    def invoke(self, conn, message_id, message):
+    def invoke(self, conn, mailbox_name, message_id, message):
         self._log.info('%s (%s)', message_id, message['subject'])
-        conn.add_flags([message_id], [imapclient.DELETED])
+        conn.delete_message(
+            mailbox_name,
+            message_id,
+            message,
+        )

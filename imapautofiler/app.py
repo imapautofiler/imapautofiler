@@ -14,36 +14,16 @@
 """
 
 import argparse
-import email.parser
-import getpass
 import imaplib
 import logging
 import sys
 
-import imapclient
-
 from imapautofiler import actions
+from imapautofiler import client
 from imapautofiler import config
 from imapautofiler import rules
 
 LOG = logging.getLogger('imapautofiler')
-
-
-def get_message(conn, msg_id):
-    """Return a Message from the current mailbox.
-
-    :param conn: IMAP server connection
-    :type conn: imapclient.IMAPClient
-    :param msg_id: ID of the message, according to the server
-    :type msg_id: str
-
-    Get the body of the message and create a Message object.
-
-    """
-    email_parser = email.parser.BytesFeedParser()
-    response = conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
-    email_parser.feed(response[msg_id][b'BODY[HEADER]'])
-    return email_parser.close()
 
 
 def list_mailboxes(cfg, debug, conn):
@@ -54,13 +34,13 @@ def list_mailboxes(cfg, debug, conn):
     :param debug: flag to control debug output
     :type debug: bool
     :param conn: IMAP server onnection
-    :type conn: imapclient.IMAPClient
+    :type conn: imapautofiler.client.Client
 
     Used by the ``--list-mailboxes`` switch.
 
     """
-    for f in conn.list_folders():
-        print(f[-1])
+    for f in conn.list_mailboxes():
+        print(f)
 
 
 def process_rules(cfg, debug, conn):
@@ -71,7 +51,7 @@ def process_rules(cfg, debug, conn):
     :param debug: flag to control debug output
     :type debug: bool
     :param conn: IMAP server onnection
-    :type conn: imapclient.IMAPClient
+    :type conn: imapautofiler.client.Client
 
     """
     num_messages = 0
@@ -79,18 +59,14 @@ def process_rules(cfg, debug, conn):
 
     for mailbox in cfg['mailboxes']:
         mailbox_name = mailbox['name']
-        conn.select_folder(mailbox_name)
 
         mailbox_rules = [
             rules.factory(r, cfg)
             for r in mailbox['rules']
         ]
 
-        msg_ids = conn.search(['ALL'])
-
-        for msg_id in msg_ids:
+        for (msg_id, message) in conn.mailbox_iterate(mailbox_name):
             num_messages += 1
-            message = get_message(conn, msg_id)
             if debug:
                 print(message.as_string().rstrip())
             else:
@@ -99,7 +75,7 @@ def process_rules(cfg, debug, conn):
             for rule in mailbox_rules:
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
-                    action.invoke(conn, msg_id, message)
+                    action.invoke(conn, mailbox_name, msg_id, message)
                     # At this point we've processed the message
                     # based on one rule, so there is no need to
                     # look at the other rules.
@@ -159,27 +135,14 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
-        conn = imapclient.IMAPClient(
-            cfg['server']['hostname'],
-            use_uid=True,
-            ssl=True,
-        )
-        username = cfg['server']['username']
-        password = cfg['server'].get('password')
-        if not password:
-            password = getpass.getpass('Password for {}:'.format(username))
-        conn.login(username, password)
+        conn = client.open_connection(cfg)
         try:
             if args.list_mailboxes:
                 list_mailboxes(cfg, args.debug, conn)
             else:
                 process_rules(cfg, args.debug, conn)
         finally:
-            try:
-                conn.close()
-            except:
-                pass
-            conn.logout()
+            conn.close()
     except Exception as err:
         if args.debug:
             raise

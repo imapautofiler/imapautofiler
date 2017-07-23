@@ -13,8 +13,6 @@
 import unittest
 import unittest.mock as mock
 
-import imapclient
-
 from imapautofiler import actions
 from imapautofiler.tests import base
 
@@ -55,8 +53,9 @@ class TestMove(base.TestCase):
             {},
         )
         conn = mock.Mock()
-        m.invoke(conn, 'id-here', self.msg)
-        conn.copy.assert_called_once_with(['id-here'], 'msg-goes-here')
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.move_message.assert_called_once_with(
+            'src-mailbox', 'msg-goes-here', 'id-here', self.msg)
 
 
 class TestTrash(base.TestCase):
@@ -81,8 +80,9 @@ class TestTrash(base.TestCase):
             {'trash-mailbox': 'to-the-trash'},
         )
         conn = mock.Mock()
-        m.invoke(conn, 'id-here', self.msg)
-        conn.copy.assert_called_once_with(['id-here'], 'to-the-trash')
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.move_message.assert_called_once_with(
+            'src-mailbox', 'to-the-trash', 'id-here', self.msg)
 
 
 class TestDelete(base.TestCase):
@@ -93,6 +93,6 @@ class TestDelete(base.TestCase):
             {},
         )
         conn = mock.Mock()
-        m.invoke(conn, 'id-here', self.msg)
-        conn.add_flags.assert_called_once_with(
-            ['id-here'], [imapclient.DELETED])
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.delete_message.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg)
