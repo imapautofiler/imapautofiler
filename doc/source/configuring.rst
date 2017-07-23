@@ -114,6 +114,28 @@ mailing list address is in the ``to`` or ``cc`` headers.
        name: "move"
        dest-mailbox: "INBOX.PyATL"
 
+For more complicated formulations, the ``and`` rule allows combining
+other rules so that they all must match the message before the action
+is taken.
+
+For example, this rule matches any message sent to the PyATL meetup
+mailing list address with a subject including the text ``"meeting
+update"``.
+
+.. code-block:: yaml
+
+   - and:
+       rules:
+         - headers:
+             - name: "to"
+               substring: "pyatl-list@meetup.com"
+         - headers:
+             - name: "subject"
+               substring: "meeting update"
+     action:
+       name: "move"
+       dest-mailbox: "INBOX.PyATL"
+
 Recipient Rules
 ---------------
 

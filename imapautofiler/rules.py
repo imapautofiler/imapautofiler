@@ -96,6 +96,32 @@ class Or(Rule):
         return any(r.check(message) for r in self._sub_rules)
 
 
+class And(Rule):
+    """True if all of the sub-rules are true.
+
+    The rule data must contain a ``rules`` list with other rules
+    specifications.
+
+    Actions on the sub-rules are ignored.
+
+    """
+
+    _log = logging.getLogger('And')
+
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
+        self._sub_rules = [
+            factory(r, cfg)
+            for r in rule_data['and'].get('rules', [])
+        ]
+
+    def check(self, message):
+        if not self._sub_rules:
+            self._log.debug('no sub-rules')
+            return False
+        return all(r.check(message) for r in self._sub_rules)
+
+
 class Recipient(Or):
     """True if any recipient sub-rule matches.
 
