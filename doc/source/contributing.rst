@@ -56,3 +56,18 @@ API Documentation
 .. toctree::
 
    api/autoindex
+
+Local Test Maildir
+==================
+
+Use ``tools/maildir_test_data.py`` to create a local test Maildir with
+a few sample messages. The script requires several dependencies, so
+for convenience there is a tox environment pre-configured to run it in
+a virtualenv.
+
+The script requires one argument to indicate the parent directory
+where the Maildirs should be created.
+
+.. code-block:: console
+
+   $ tox -e testdata -- /tmp/testdata
