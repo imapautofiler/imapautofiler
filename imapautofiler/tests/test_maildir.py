@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import email.utils
 import mailbox
 import os.path
 import textwrap
@@ -41,6 +42,7 @@ class MaildirFixture(fixtures.Fixture):
             msg['From'] = from_addr
             msg['To'] = to_addr
             msg['Subject'] = subject
+            msg['Date'] = email.utils.formatdate()
             msg.set_payload(textwrap.dedent('''
             This is the body.
             There are 2 lines.
