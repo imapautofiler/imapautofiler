@@ -9,6 +9,8 @@ python:
 matrix:
   allow_failures:
     - python: "nightly"
+  include:
+    - env: SPHINX=true
 
 # travis pre-installs some packages that may conflict with
 # testrepository, so remove them before we set ourselves up. Also
@@ -18,8 +20,9 @@ before_install:
   - pip uninstall -y nose pytest mock
   - pip install pbr
 
-install: pip install .[test]
+install: pip install .[test] .[docs]
 
 script:
   - python setup.py test --coverage --slowest --testr-args=''
   - coverage report --show-missing
+  - ./tools/travis-sphinx.sh
