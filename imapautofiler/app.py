@@ -56,6 +56,7 @@ def process_rules(cfg, debug, conn):
     """
     num_messages = 0
     num_processed = 0
+    num_errors = 0
 
     for mailbox in cfg['mailboxes']:
         mailbox_name = mailbox['name']
@@ -75,11 +76,18 @@ def process_rules(cfg, debug, conn):
             for rule in mailbox_rules:
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
-                    action.invoke(conn, mailbox_name, msg_id, message)
+                    try:
+                        action.invoke(conn, mailbox_name, msg_id, message)
+                    except Exception as err:
+                        LOG.error('failed to %s "%s": %s',
+                                  action.__class__.__name__.lower(),
+                                  message['subject'], err)
+                        num_errors += 1
+                    else:
+                        num_processed += 1
                     # At this point we've processed the message
                     # based on one rule, so there is no need to
                     # look at the other rules.
-                    num_processed += 1
                     break
                 else:
                     LOG.debug('no rules match')
@@ -90,6 +98,8 @@ def process_rules(cfg, debug, conn):
         conn.expunge()
     LOG.info('encountered %s messages, processed %s',
              num_messages, num_processed)
+    if num_errors:
+        LOG.info('encountered %d errors', num_errors)
     return
 
 
