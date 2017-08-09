@@ -68,6 +68,20 @@ trash mailbox. There is no default value.
 
   trash-mailbox: INBOX.Trash
 
+Mailboxes
+=========
+
+The mailboxes that imapautofiler should process are listed under ``mailboxes``.
+Each mailbox has a name and a list of rules.
+
+.. code-block:: yaml
+
+  mailboxes:
+  - name: INBOX
+    rules: ...
+  - name: Sent
+    rules: ...
+
 Rules
 =====
 
@@ -218,3 +232,35 @@ regular expression ``notify-.*@disqus.net``.
          regex: "notify-.*@disqus.net"
      action:
        name: delete
+
+Complete example configuration file
+===================================
+
+Here's an example of a configuration file with all the possible parts.
+
+.. code-block:: yaml
+
+    server:
+      hostname: imap.gmail.com
+      username: user@example.com
+      password: xxxxxxxxxxxxxx
+
+      trash-mailbox: "[Gmail]/Trash"
+
+    mailboxes:
+    - name: INBOX
+      rules:
+      - headers:
+        - name: "from"
+          substring: user1@example.com
+        action:
+          name: "move"
+          dest-mailbox: "User1 correspondence"
+      - headers:
+        - name: recipient
+          substring: dev-team
+        - name: subject
+          substring: "[Django] ERROR"
+        action:
+          name: "move"
+          dest-mailbox: "Django Errors"
