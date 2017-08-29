@@ -13,6 +13,7 @@
 import abc
 import logging
 import re
+from email.header import decode_header, make_header
 
 
 def factory(rule_data, cfg):
@@ -151,33 +152,50 @@ class Headers(Rule):
         return all(m.check(message) for m in self._matchers)
 
 
-class HeaderSubString(Rule):
+class Header(Rule):
+    _log = logging.getLogger('Header')
+
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
+        self._header_name = rule_data['name']
+        self._value = rule_data.get('value', '').lower()
+
+    def _decode_header(self, header):
+        return str(make_header(decode_header(header)))
+
+    def _check_rule(self, decoded_header):
+        return self._value == decoded_header.lower()
+
+    def check(self, message):
+        decoded_header = self._decode_header(
+            message.get(self._header_name, '')
+        )
+        self._log.debug('%r in %r', self._value, decoded_header)
+        return self._check_rule(decoded_header)
+
+
+class HeaderSubString(Header):
     "Implements substring matching for headers."
 
     _log = logging.getLogger('HeaderSubString')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._header_name = rule_data['name']
-        self._substring = rule_data['substring'].lower()
+        self._value = rule_data.get('substring', '')
 
-    def check(self, message):
-        header_value = message.get(self._header_name, '').lower()
-        self._log.debug('%r in %r', self._substring, header_value)
-        return (self._substring in header_value)
+    def _check_rule(self, decoded_header):
+        return self._value in decoded_header.lower()
 
 
-class HeaderRegex(Rule):
+class HeaderRegex(Header):
     "Implements regular expression matching for headers."
 
     _log = logging.getLogger('HeaderRegex')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._header_name = rule_data['name']
-        self._regex = re.compile(rule_data['regex'].lower())
+        self._value = rule_data.get('regex', '')
+        self._regex = re.compile(self._value)
 
-    def check(self, message):
-        header_value = message.get(self._header_name, '').lower()
-        self._log.debug('%r in %r', self._regex.pattern, header_value)
-        return bool(self._regex.search(header_value))
+    def _check_rule(self, decoded_header):
+        return bool(self._regex.search(decoded_header))
