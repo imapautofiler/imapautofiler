@@ -184,17 +184,18 @@ class Header(Rule):
         decoded_header = self._decode_header(
             message.get(self._header_name, '')
         )
+        self._log.debug('%r in %r', self._value, decoded_header)
         return self._check_rule(decoded_header)
 
 
 class HeaderSubString(Header):
     "Implements substring matching for headers."
 
+    _log = logging.getLogger('HeaderSubString')
+
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
         self._value = rule_data.get('substring', '')
-
-    _log = logging.getLogger('HeaderSubString')
 
     def _check_rule(self, decoded_header):
         return self._value in decoded_header.lower()
