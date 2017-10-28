@@ -181,6 +181,20 @@ class TestHeaderExists(base.TestCase):
         self.assertFalse(r.check(self.msg))
 
 
+class TestIsMailingList(base.TestCase):
+
+    def test_yes(self):
+        rule_def = {}
+        r = rules.IsMailingList(rule_def, {})
+        self.msg['list-id'] = '<sphinx-dev.googlegroups.com>'
+        self.assertTrue(r.check(self.msg))
+
+    def test_no(self):
+        rule_def = {}
+        r = rules.IsMailingList(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+
 class TestHeaders(base.TestCase):
 
     def test_create_recursive(self):

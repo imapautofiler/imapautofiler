@@ -35,6 +35,8 @@ def factory(rule_data, cfg):
         return Recipient(rule_data, cfg)
     if 'header-exists' in rule_data:
         return HeaderExists(rule_data, cfg)
+    if 'is-mailing-list' in rule_data:
+        return IsMailingList(rule_data, cfg)
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
 
 
@@ -197,3 +199,14 @@ class HeaderExists(Rule):
     def check(self, message):
         self._log.debug('%r exists', self._header_name)
         return self._header_name in message
+
+
+class IsMailingList(HeaderExists):
+    "Looks for a message to have a given header."
+
+    _log = logging.getLogger('IsMailingList')
+
+    def __init__(self, rule_data, cfg):
+        if 'name' not in rule_data:
+            rule_data['name'] = 'list-id'
+        super().__init__(rule_data, cfg)
