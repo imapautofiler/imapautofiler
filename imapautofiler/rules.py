@@ -33,6 +33,8 @@ def factory(rule_data, cfg):
         return Headers(rule_data, cfg)
     if 'recipient' in rule_data:
         return Recipient(rule_data, cfg)
+    if 'header-exists' in rule_data:
+        return HeaderExists(rule_data, cfg)
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
 
 
@@ -181,3 +183,17 @@ class HeaderRegex(Rule):
         header_value = message.get(self._header_name, '').lower()
         self._log.debug('%r in %r', self._regex.pattern, header_value)
         return bool(self._regex.search(header_value))
+
+
+class HeaderExists(Rule):
+    "Looks for a message to have a given header."
+
+    _log = logging.getLogger('HeaderExists')
+
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
+        self._header_name = rule_data['name']
+
+    def check(self, message):
+        self._log.debug('%r exists', self._header_name)
+        return self._header_name in message
