@@ -30,6 +30,8 @@ def factory(action_data, cfg):
     name = action_data.get('name')
     if name == 'move':
         return Move(action_data, cfg)
+    if name == 'sort':
+        return Sort(action_data, cfg)
     if name == 'sort-mailing-list':
         return SortMailingList(action_data, cfg)
     if name == 'delete':
@@ -103,19 +105,22 @@ class Move(Action):
         )
 
 
-class SortMailingList(Action):
-    """Move the message based on the mailing list id.
+class Sort(Action):
+    """Move the message based on parsing a destination from a header.
 
-    The action is indicated with the name ``sort-mailing-list``.
+    The action is indicated with the name ``sort``.
+
+    The action may contain a ``header`` entry to specify the name of
+    the mail header to examine to find the destination. The default is
+    to use the ``to`` header.
 
     The action data may contain a ``dest-mailbox-regex`` entry for
-    parsing the list-id value to obtain the destination mailbox
+    parsing the header value to obtain the destination mailbox
     name. If the regex has one match group, that substring will be
     used. If the regex has more than one match group, the
     ``dest-mailbox-regex-group`` option must specify which group to
     use (0-based numerical index). The default pattern is
-    ``r'<?([^.]+)\..*>?'`` to match the first part of a dotted name
-    name between optional angle brackets.
+    ``([\w-+]+)@`` to match the first part of an email address.
 
     The action data must contain a ``dest-mailbox-base`` entry with
     the base name of the destination mailbox. The actual mailbox name
@@ -127,11 +132,13 @@ class SortMailingList(Action):
     # TODO(dhellmann): Extend this class to support named groups in
     # the regex.
 
-    _log = logging.getLogger('SortMailingList')
-    _default_regex = r'<?([^.]+)\..*>?'
+    _log = logging.getLogger('Sort')
+    _default_header = 'to'
+    _default_regex = r'([\w+-]+)@'
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
+        self._header = self._data.get('header', self._default_header)
         self._dest_mailbox_base = self._data.get('dest-mailbox-base')
         if not self._dest_mailbox_base:
             raise ValueError(
@@ -157,17 +164,18 @@ class SortMailingList(Action):
             'dest-mailbox-regex-group', 0)
 
     def _get_dest_mailbox(self, message_id, message):
-        list_id = message.get('list-id', '')
-        match = self._dest_mailbox_regex.search(list_id)
+        header_value = message.get(self._header, '')
+        match = self._dest_mailbox_regex.search(header_value)
         if not match:
             raise ValueError(
                 'Could not determine destination mailbox from '
-                'list-id {!r} with regex {!r}'.format(
-                    list_id, self._dest_mailbox_regex)
+                '{!r} header {!r} with regex {!r}'.format(
+                    self._header, header_value, self._dest_mailbox_regex)
             )
         self._log.debug(
-            '%s list-id %r matched regex %r with %r',
-            message_id, list_id, self._dest_mailbox_regex.pattern,
+            '%s %r header %r matched regex %r with %r',
+            message_id, self._header, header_value,
+            self._dest_mailbox_regex.pattern,
             match.groups(),
         )
         self._log.debug(
@@ -192,6 +200,22 @@ class SortMailingList(Action):
             message_id,
             message,
         )
+
+
+class SortMailingList(Sort):
+    """Move the message based on the mailing list id.
+
+    The action is indicated with the name ``sort-mailing-list``.
+
+    This action is equivalent to the ``sort`` action with header set
+    to ``list-id`` and ``dest-mailbox-regex`` set to
+    ``<?([^.]+)\..*>?``.
+
+    """
+
+    _log = logging.getLogger('SortMailingList')
+    _default_header = 'list-id'
+    _default_regex = r'<?([^.]+)\..*>?'
 
 
 class Trash(Move):
