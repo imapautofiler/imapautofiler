@@ -157,6 +157,44 @@ class TestHeaderRegex(base.TestCase):
         self.assertFalse(r.check(self.msg))
 
 
+class TestHeaderExists(base.TestCase):
+
+    def test_exists(self):
+        rule_def = {
+            'name': 'references',
+        }
+        r = rules.HeaderExists(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_exists_no_case(self):
+        rule_def = {
+            'name': 'REFERENCES',
+        }
+        r = rules.HeaderExists(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_no_exists(self):
+        rule_def = {
+            'name': 'no-such-header',
+        }
+        r = rules.HeaderExists(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+
+class TestIsMailingList(base.TestCase):
+
+    def test_yes(self):
+        rule_def = {}
+        r = rules.IsMailingList(rule_def, {})
+        self.msg['list-id'] = '<sphinx-dev.googlegroups.com>'
+        self.assertTrue(r.check(self.msg))
+
+    def test_no(self):
+        rule_def = {}
+        r = rules.IsMailingList(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+
 class TestHeaders(base.TestCase):
 
     def test_create_recursive(self):

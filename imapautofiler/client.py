@@ -157,7 +157,7 @@ class IMAPClient(Client):
     def close(self):
         try:
             self._conn.close()
-        except:
+        except Exception:
             pass
         self._conn.logout()
 

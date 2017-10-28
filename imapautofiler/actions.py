@@ -12,6 +12,7 @@
 
 import abc
 import logging
+import re
 
 
 def factory(action_data, cfg):
@@ -29,6 +30,10 @@ def factory(action_data, cfg):
     name = action_data.get('name')
     if name == 'move':
         return Move(action_data, cfg)
+    if name == 'sort':
+        return Sort(action_data, cfg)
+    if name == 'sort-mailing-list':
+        return SortMailingList(action_data, cfg)
     if name == 'delete':
         return Delete(action_data, cfg)
     if name == 'trash':
@@ -98,6 +103,122 @@ class Move(Action):
             message_id,
             message,
         )
+
+
+class Sort(Action):
+    """Move the message based on parsing a destination from a header.
+
+    The action is indicated with the name ``sort``.
+
+    The action may contain a ``header`` entry to specify the name of
+    the mail header to examine to find the destination. The default is
+    to use the ``to`` header.
+
+    The action data may contain a ``dest-mailbox-regex`` entry for
+    parsing the header value to obtain the destination mailbox
+    name. If the regex has one match group, that substring will be
+    used. If the regex has more than one match group, the
+    ``dest-mailbox-regex-group`` option must specify which group to
+    use (0-based numerical index). The default pattern is
+    ``([\w-+]+)@`` to match the first part of an email address.
+
+    The action data must contain a ``dest-mailbox-base`` entry with
+    the base name of the destination mailbox. The actual mailbox name
+    will be constructed by appending the value extracted via
+    ``dest-mailbox-regex`` to the ``dest-mailbox-base`` value. The
+    ``dest-mailbox-base`` value should contain the mailbox separator
+    character (usually ``.``) if the desired mailbox is a sub-folder
+    of the name given.
+
+    """
+
+    # TODO(dhellmann): Extend this class to support named groups in
+    # the regex.
+
+    _log = logging.getLogger('Sort')
+    _default_header = 'to'
+    _default_regex = r'([\w+-]+)@'
+
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
+        self._header = self._data.get('header', self._default_header)
+        self._dest_mailbox_base = self._data.get('dest-mailbox-base')
+        if not self._dest_mailbox_base:
+            raise ValueError(
+                'No dest-mailbox-base given for action {}'.format(
+                    action_data)
+            )
+        self._dest_mailbox_regex = re.compile(self._data.get(
+            'dest-mailbox-regex', self._default_regex))
+        if not self._dest_mailbox_regex.groups:
+            raise ValueError(
+                'Regex {!r} has no group to select the mailbox '
+                'name portion.'.format(self._dest_mailbox_regex.pattern)
+            )
+        if self._dest_mailbox_regex.groups > 1:
+            if 'dest-mailbox-regex-group' not in action_data:
+                raise ValueError(
+                    'Regex {!r} has multiple groups and the '
+                    'action data does not specify the '
+                    'dest-mailbox-regex-group to use.'.format(
+                        self._dest_mailbox_regex.pattern)
+                )
+        self._dest_mailbox_regex_group = action_data.get(
+            'dest-mailbox-regex-group', 0)
+
+    def _get_dest_mailbox(self, message_id, message):
+        header_value = message.get(self._header, '')
+        match = self._dest_mailbox_regex.search(header_value)
+        if not match:
+            raise ValueError(
+                'Could not determine destination mailbox from '
+                '{!r} header {!r} with regex {!r}'.format(
+                    self._header, header_value, self._dest_mailbox_regex)
+            )
+        self._log.debug(
+            '%s %r header %r matched regex %r with %r',
+            message_id, self._header, header_value,
+            self._dest_mailbox_regex.pattern,
+            match.groups(),
+        )
+        self._log.debug(
+            '%s using group %s',
+            message_id,
+            self._dest_mailbox_regex_group,
+        )
+        return '{}{}'.format(
+            self._dest_mailbox_base,
+            match.groups()[self._dest_mailbox_regex_group],
+        )
+
+    def invoke(self, conn, src_mailbox, message_id, message):
+        dest_mailbox = self._get_dest_mailbox(message_id, message)
+        self._log.info(
+            '%s (%s) to %s',
+            message_id, message['subject'],
+            dest_mailbox)
+        conn.move_message(
+            src_mailbox,
+            dest_mailbox,
+            message_id,
+            message,
+        )
+
+
+class SortMailingList(Sort):
+    """Move the message based on the mailing list id.
+
+    The action is indicated with the name ``sort-mailing-list``.
+
+    This action is equivalent to the ``sort`` action with header set
+    to ``list-id`` and ``dest-mailbox-regex`` set to
+    ``<?([^.]+)\..*>?``.
+
+    """
+
+    _log = logging.getLogger('SortMailingList')
+    _default_header = 'list-id'
+    _default_regex = r'<?([^.]+)\..*>?'
 
 
 class Trash(Move):
