@@ -125,7 +125,10 @@ class Sort(Action):
     The action data must contain a ``dest-mailbox-base`` entry with
     the base name of the destination mailbox. The actual mailbox name
     will be constructed by appending the value extracted via
-    ``dest-mailbox-regex`` to the ``dest-mailbox-base`` value.
+    ``dest-mailbox-regex`` to the ``dest-mailbox-base`` value. The
+    ``dest-mailbox-base`` value should contain the mailbox separator
+    character (usually ``.``) if the desired mailbox is a sub-folder
+    of the name given.
 
     """
 
@@ -183,7 +186,7 @@ class Sort(Action):
             message_id,
             self._dest_mailbox_regex_group,
         )
-        return '{}.{}'.format(
+        return '{}{}'.format(
             self._dest_mailbox_base,
             match.groups()[self._dest_mailbox_regex_group],
         )

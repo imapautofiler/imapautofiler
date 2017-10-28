@@ -63,10 +63,10 @@ class TestSort(base.TestCase):
     def test_create(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here'},
+             'dest-mailbox-base': 'lists-go-under-here.'},
             {},
         )
-        self.assertEqual('lists-go-under-here', m._dest_mailbox_base)
+        self.assertEqual('lists-go-under-here.', m._dest_mailbox_base)
         self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
 
     def test_create_missing_base(self):
@@ -80,11 +80,11 @@ class TestSort(base.TestCase):
     def test_create_with_regex(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':(.*):'},
             {},
         )
-        self.assertEqual('lists-go-under-here', m._dest_mailbox_base)
+        self.assertEqual('lists-go-under-here.', m._dest_mailbox_base)
         self.assertEqual(':(.*):', m._dest_mailbox_regex.pattern)
 
     def test_create_bad_regex(self):
@@ -92,7 +92,7 @@ class TestSort(base.TestCase):
             ValueError,
             actions.Sort,
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':.*:'},
             {},
         )
@@ -100,7 +100,7 @@ class TestSort(base.TestCase):
     def test_create_with_multi_group_regex(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':(.*):(.*):',
              'dest-mailbox-regex-group': 1},
             {},
@@ -110,7 +110,7 @@ class TestSort(base.TestCase):
     def test_get_dest_mailbox_default(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here'},
+             'dest-mailbox-base': 'lists-go-under-here.'},
             {},
         )
         dest = m._get_dest_mailbox('id-here', self.msg)
@@ -122,7 +122,7 @@ class TestSort(base.TestCase):
     def test_get_dest_mailbox_regex(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': r'(.*)'},
             {},
         )
@@ -135,7 +135,7 @@ class TestSort(base.TestCase):
     def test_invoke(self):
         m = actions.Sort(
             {'name': 'sort',
-             'dest-mailbox-base': 'lists-go-under-here'},
+             'dest-mailbox-base': 'lists-go-under-here.'},
             {},
         )
         conn = mock.Mock()
@@ -150,10 +150,10 @@ class TestSortMailingList(base.TestCase):
     def test_create(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here'},
+             'dest-mailbox-base': 'lists-go-under-here.'},
             {},
         )
-        self.assertEqual('lists-go-under-here', m._dest_mailbox_base)
+        self.assertEqual('lists-go-under-here.', m._dest_mailbox_base)
         self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
 
     def test_create_missing_base(self):
@@ -167,11 +167,11 @@ class TestSortMailingList(base.TestCase):
     def test_create_with_regex(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':(.*):'},
             {},
         )
-        self.assertEqual('lists-go-under-here', m._dest_mailbox_base)
+        self.assertEqual('lists-go-under-here.', m._dest_mailbox_base)
         self.assertEqual(':(.*):', m._dest_mailbox_regex.pattern)
 
     def test_create_bad_regex(self):
@@ -179,7 +179,7 @@ class TestSortMailingList(base.TestCase):
             ValueError,
             actions.SortMailingList,
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':.*:'},
             {},
         )
@@ -187,7 +187,7 @@ class TestSortMailingList(base.TestCase):
     def test_create_with_multi_group_regex(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': ':(.*):(.*):',
              'dest-mailbox-regex-group': 2},
             {},
@@ -197,7 +197,7 @@ class TestSortMailingList(base.TestCase):
     def test_get_dest_mailbox_default(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here'},
+             'dest-mailbox-base': 'lists-go-under-here.'},
             {},
         )
         self.msg['list-id'] = '<sphinx-dev.googlegroups.com>'
@@ -210,7 +210,7 @@ class TestSortMailingList(base.TestCase):
     def test_get_dest_mailbox_regex(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': r'<(.*)>'},
             {},
         )
@@ -224,7 +224,7 @@ class TestSortMailingList(base.TestCase):
     def test_invoke(self):
         m = actions.SortMailingList(
             {'name': 'sort-mailing-list',
-             'dest-mailbox-base': 'lists-go-under-here',
+             'dest-mailbox-base': 'lists-go-under-here.',
              'dest-mailbox-regex': r'<(.*)>'},
             {},
         )
