@@ -91,6 +91,7 @@ class And(Rule):
     """
 
     _log = logging.getLogger('And')
+    NAME = 'and'
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)

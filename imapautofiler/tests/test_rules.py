@@ -35,6 +35,7 @@ class TestFactory(unittest.TestCase):
     def test_known(self):
         expected = [
             'or',
+            'and',
             'recipient',
             'headers',
             'header-exists',
