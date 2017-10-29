@@ -50,6 +50,7 @@ MESSAGE = {
 I18N_MESSAGE = MESSAGE.copy()
 I18N_MESSAGE.update({
     'From': 'Иванов Иван <sender@example.com>',
+    'To': 'Иванов Иван <recipient3@example.com>',
     'Subject': 'Re: ответ на предыдущее сообщение',
 })
 

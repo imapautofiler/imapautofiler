@@ -14,6 +14,7 @@ import abc
 import logging
 import re
 
+from imapautofiler import i18n
 from imapautofiler import lookup
 
 
@@ -146,7 +147,7 @@ class Sort(Action):
             'dest-mailbox-regex-group', 0)
 
     def _get_dest_mailbox(self, message_id, message):
-        header_value = message.get(self._header, '')
+        header_value = i18n.get_header_value(message, self._header)
         match = self._dest_mailbox_regex.search(header_value)
         if not match:
             raise ValueError(

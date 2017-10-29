@@ -13,8 +13,8 @@
 import abc
 import logging
 import re
-from email.header import decode_header, make_header
 
+from imapautofiler import i18n
 from imapautofiler import lookup
 
 
@@ -174,18 +174,13 @@ class Header(Rule):
         self._header_name = rule_data['name']
         self._value = rule_data.get('value', '').lower()
 
-    def _decode_header(self, header):
-        return str(make_header(decode_header(header)))
-
-    def _check_rule(self, decoded_header):
-        return self._value == decoded_header.lower()
+    def _check_rule(self, header_value):
+        return self._value == header_value.lower()
 
     def check(self, message):
-        decoded_header = self._decode_header(
-            message.get(self._header_name, '')
-        )
-        self._log.debug('%r in %r', self._value, decoded_header)
-        return self._check_rule(decoded_header)
+        header_value = i18n.get_header_value(message, self._header_name)
+        self._log.debug('%r in %r', self._value, header_value)
+        return self._check_rule(header_value)
 
 
 class HeaderSubString(Header):
@@ -197,8 +192,8 @@ class HeaderSubString(Header):
         super().__init__(rule_data, cfg)
         self._value = rule_data.get('substring', '')
 
-    def _check_rule(self, decoded_header):
-        return self._value in decoded_header.lower()
+    def _check_rule(self, header_value):
+        return self._value in header_value.lower()
 
 
 class HeaderRegex(Header):
@@ -212,8 +207,8 @@ class HeaderRegex(Header):
         self._value = rule_data.get('regex', '')
         self._regex = re.compile(self._value)
 
-    def _check_rule(self, decoded_header):
-        return bool(self._regex.search(decoded_header))
+    def _check_rule(self, header_value):
+        return bool(self._regex.search(header_value))
 
 
 class HeaderExists(Rule):
