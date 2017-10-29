@@ -197,7 +197,7 @@ The ``move`` action copies the message to a new mailbox and then
 deletes the version in the source mailbox. This action can be used to
 automatically file messages.
 
-The example below move any message sent to the PyATL meetup group
+The example below moves any message sent to the PyATL meetup group
 mailing list into the mailbox ``INBOX.PyATL``.
 
 .. code-block:: yaml
@@ -212,6 +212,76 @@ Different IMAP servers may use different naming conventions for
 mailbox hierarchies. Use the ``--list-mailboxes`` option to the
 command line program to print a list of all of the mailboxes known to
 the account.
+
+Sort Action
+-----------
+
+The ``sort`` action uses data in a message header to determine the
+destination mailbox for the message. This action can be used to
+automatically file messages from mailing lists or other common sources
+if the corresponding mailbox hierarchy is established. A ``sort``
+action is equivalent to ``move`` except that the destination is
+determined dynamically.
+
+The action settings may contain a ``header`` entry to specify the name
+of the mail header to examine to find the destination. The default is
+to use the ``to`` header.
+
+The action data may contain a ``dest-mailbox-regex`` entry for parsing
+the header value to obtain the destination mailbox name. If the regex
+has one match group, that substring will be used. If the regex has
+more than one match group, the ``dest-mailbox-regex-group`` option
+must specify which group to use (0-based numerical index). The default
+pattern is ``([\w-+]+)@`` to match the first part of an email address.
+
+The action data must contain a ``dest-mailbox-base`` entry with the
+base name of the destination mailbox. The actual mailbox name will be
+constructed by appending the value extracted via
+``dest-mailbox-regex`` to the ``dest-mailbox-base`` value. The
+``dest-mailbox-base`` value should contain the mailbox separator
+character (usually ``.``) if the desired mailbox is a sub-folder of
+the name given.
+
+The example below sorts messages associated with two mailing lists
+into separate mailboxes under a parent mailbox ``INBOX.ML``. It uses
+the default regular expression to extract the prefix of the ``to``
+header for each message. Messages to the
+``python-committers@python.org`` mailing list are sorted into
+``INBOX.ML.python-committers`` and messages to the
+``sphinx-dev@googlegroups.com`` list are sorted into
+``INBOX.ML.sphinx-dev``.
+
+.. code-block:: yaml
+
+   - or:
+       rules:
+         - recipient:
+             substring: python-committers@python.org
+         - recipient:
+             substring: sphinx-dev@googlegroups.com
+     action:
+       name: sort
+       dest-mailbox-base: "INBOX.ML."
+
+Sort Mailing List Action
+------------------------
+
+The ``sort-mailing-list`` action works like ``sort`` configured to
+read the ``list-id`` header and extract the portion of the ID between
+``<`` and ``>``. if they are present. If there are no angle brackets
+in the ID, the entire value is used. As with ``sort`` the
+``dest-mailbox-regex`` can be specified in the rule to change this
+behavior.
+
+The example below sorts messages to any mailing list into separate
+folders under ``INBOX.ML``.
+
+.. code-block:: yaml
+
+   - is-mailing-list: {}
+     action:
+       name: sort-mailing-list
+       dest-mailbox-base: "INBOX.ML."
 
 Trash Action
 ------------
