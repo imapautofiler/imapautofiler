@@ -19,23 +19,32 @@ from imapautofiler.tests import base
 
 class TestFactory(unittest.TestCase):
 
-    def test_unknown(self):
+    def test_unnamed(self):
         self.assertRaises(ValueError, actions.factory, {}, {})
 
-    @mock.patch.object(actions, 'Move')
-    def test_move(self, move):
-        actions.factory({'name': 'move'}, {})
-        move.assert_called_with({'name': 'move'}, {})
+    def test_unknown(self):
+        self.assertRaises(ValueError, actions.factory,
+                          {'name': 'unknown-action'}, {})
 
-    @mock.patch.object(actions, 'Delete')
-    def test_delete(self, delete):
-        actions.factory({'name': 'delete'}, {})
-        delete.assert_called_with({'name': 'delete'}, {})
+    def test_lookup(self):
+        with mock.patch.object(actions, '_lookup_table', {}) as lt:
+            lt['move'] = mock.Mock()
+            actions.factory({'name': 'move'}, {})
+            lt['move'].assert_called_with({'name': 'move'}, {})
 
-    @mock.patch.object(actions, 'Trash')
-    def test_trash(self, trash):
-        actions.factory({'name': 'trash'}, {})
-        trash.assert_called_with({'name': 'trash'}, {})
+    def test_known(self):
+        expected = [
+            'move',
+            'sort',
+            'sort-mailing-list',
+            'trash',
+            'delete',
+        ]
+        expected.sort()
+        self.assertEqual(
+            expected,
+            list(sorted(actions._lookup_table.keys())),
+        )
 
 
 class TestMove(base.TestCase):
