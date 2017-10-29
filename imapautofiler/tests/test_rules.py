@@ -199,6 +199,56 @@ class TestAnd(base.TestCase):
         self.assertFalse(r.check(self.msg))
 
 
+class TestHeaderExactValue(base.TestCase):
+    def test_match(self):
+        rule_def = {
+            'name': 'to',
+            'value': 'recipient1@example.com',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_no_match(self):
+        rule_def = {
+            'name': 'to',
+            'value': 'not_the_recipient1@example.com',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+    def test_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'value': 'recipient1@example.com',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertFalse(r.check(self.msg))
+
+    def test_i18n_match(self):
+        rule_def = {
+            'name': 'subject',
+            'value': 'Re: ответ на предыдущее сообщение',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertTrue(r.check(self.i18n_msg))
+
+    def test_i18n_no_match(self):
+        rule_def = {
+            'name': 'subject',
+            'value': 'Re: что-то другое',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
+
+    def test_i18n_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'value': 'такого заголовка нет',
+        }
+        r = rules.HeaderExactValue(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
+
+
 class TestHeaderSubString(base.TestCase):
 
     def test_match(self):
@@ -224,6 +274,30 @@ class TestHeaderSubString(base.TestCase):
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertFalse(r.check(self.msg))
+
+    def test_i18n_match(self):
+        rule_def = {
+            'name': 'subject',
+            'substring': 'предыдущее',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertTrue(r.check(self.i18n_msg))
+
+    def test_i18n_no_match(self):
+        rule_def = {
+            'name': 'subject',
+            'substring': 'что-то другое',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
+
+    def test_i18n_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'substring': 'такого заголовка нет',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
 
 
 class TestHeaderRegex(base.TestCase):
@@ -251,6 +325,30 @@ class TestHeaderRegex(base.TestCase):
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertFalse(r.check(self.msg))
+
+    def test_i18n_match(self):
+        rule_def = {
+            'name': 'subject',
+            'regex': 'предыдущее',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertTrue(r.check(self.i18n_msg))
+
+    def test_i18n_no_match(self):
+        rule_def = {
+            'name': 'subject',
+            'regex': 'что-то другое',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
+
+    def test_i18n_no_such_header(self):
+        rule_def = {
+            'name': 'this_header_not_present',
+            'regex': 'такого заголовка нет',
+        }
+        r = rules.HeaderRegex(rule_def, {})
+        self.assertFalse(r.check(self.i18n_msg))
 
 
 class TestHeaderExists(base.TestCase):

@@ -9,6 +9,7 @@ ChangeLog
 imapautofiler.egg-info/
 build/
 doc/build/
+doc/source/api/
 dist/
 .testrepository/
 .project

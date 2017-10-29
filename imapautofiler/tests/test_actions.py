@@ -128,6 +128,18 @@ class TestSort(base.TestCase):
             dest,
         )
 
+    def test_get_dest_mailbox_i18n(self):
+        m = actions.Sort(
+            {'name': 'sort',
+             'dest-mailbox-base': 'lists-go-under-here.'},
+            {},
+        )
+        dest = m._get_dest_mailbox('id-here', self.i18n_msg)
+        self.assertEqual(
+            'lists-go-under-here.recipient3',
+            dest,
+        )
+
     def test_get_dest_mailbox_regex(self):
         m = actions.Sort(
             {'name': 'sort',
