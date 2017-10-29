@@ -78,11 +78,11 @@ then processing for that message stops.
 Header Rules
 ------------
 
-A ``header`` rule can match either a substring or regular expression
-against the contents of a specified message header. If a header does
-not exist, the content is treated as an empty string. The header text
-and pattern are both converted to lowercase before the comparison is
-performed.
+A ``header`` rule can match either a complete header value, a
+substring, or a regular expression against the contents of a specified
+message header. If a header does not exist, the content is treated as
+an empty string. The header text and pattern are both converted to
+lowercase before the comparison is performed.
 
 This example rule matches messages with the string "[pyatl]" in the
 subject line.
@@ -104,6 +104,17 @@ the regular expression ``notify-.*@disqus.net``.
    - headers:
        - name: to
          regex: "notify-.*@disqus.net"
+     action:
+       name: trash
+
+This example rule matches messages for which the "Message-Id" header
+is exactly ``<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>``.
+
+.. code-block:: yaml
+
+   - headers:
+       - name: to
+         value: "<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>"
      action:
        name: trash
 

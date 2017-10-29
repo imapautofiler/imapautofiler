@@ -34,7 +34,7 @@ class Rule(metaclass=abc.ABCMeta):
         :type cfg: dict
 
         """
-        self._log.debug('new %r', rule_data)
+        self._log.debug('rule %r', rule_data)
         self._data = rule_data
         self._cfg = cfg
 
@@ -155,6 +155,8 @@ class Headers(Rule):
                 self._matchers.append(HeaderSubString(header, cfg))
             elif 'regex' in header:
                 self._matchers.append(HeaderRegex(header, cfg))
+            elif 'value' in header:
+                self._matchers.append(HeaderExactValue(header, cfg))
             else:
                 raise ValueError('unknown header matcher {!r}'.format(header))
 
@@ -165,9 +167,26 @@ class Headers(Rule):
         return all(m.check(message) for m in self._matchers)
 
 
-class Header(Rule):
+class _HeaderMatcher(Rule):
     _log = logging.getLogger('Header')
-    NAME = None
+    NAME = None  # matchers cannot be used directly
+
+    def __init__(self, rule_data, cfg):
+        super().__init__(rule_data, cfg)
+        self._header_name = rule_data['name']
+        self._value = rule_data.get('value', '').lower()
+
+    @abc.abstractmethod
+    def _check_rule(self, header_value):
+        pass
+
+    def check(self, message):
+        header_value = i18n.get_header_value(message, self._header_name)
+        return self._check_rule(header_value)
+
+
+class HeaderExactValue(_HeaderMatcher):
+    _log = logging.getLogger('HeaderExactValue')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -175,15 +194,11 @@ class Header(Rule):
         self._value = rule_data.get('value', '').lower()
 
     def _check_rule(self, header_value):
+        self._log.debug('%r == %r', self._value, header_value)
         return self._value == header_value.lower()
 
-    def check(self, message):
-        header_value = i18n.get_header_value(message, self._header_name)
-        self._log.debug('%r in %r', self._value, header_value)
-        return self._check_rule(header_value)
 
-
-class HeaderSubString(Header):
+class HeaderSubString(_HeaderMatcher):
     "Implements substring matching for headers."
 
     _log = logging.getLogger('HeaderSubString')
@@ -193,14 +208,14 @@ class HeaderSubString(Header):
         self._value = rule_data.get('substring', '')
 
     def _check_rule(self, header_value):
+        self._log.debug('%r in %r', self._value, header_value)
         return self._value in header_value.lower()
 
 
-class HeaderRegex(Header):
+class HeaderRegex(_HeaderMatcher):
     "Implements regular expression matching for headers."
 
     _log = logging.getLogger('HeaderRegex')
-    NAME = None
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -208,6 +223,7 @@ class HeaderRegex(Header):
         self._regex = re.compile(self._value)
 
     def _check_rule(self, header_value):
+        self._log.debug('%r matches %r', self._regex, header_value)
         return bool(self._regex.search(header_value))
 
 
