@@ -19,18 +19,32 @@ from imapautofiler.tests import base
 
 class TestFactory(unittest.TestCase):
 
-    def test_unknown(self):
+    def test_unnamed(self):
         self.assertRaises(ValueError, rules.factory, {}, {})
 
-    @mock.patch.object(rules, 'Or')
-    def test_or(self, or_):
-        rules.factory({'or': {}}, {})
-        or_.assert_called_with({'or': {}}, {})
+    def test_unknown(self):
+        self.assertRaises(ValueError, rules.factory,
+                          {'unknown-rule': {}}, {})
 
-    @mock.patch.object(rules, 'Headers')
-    def test_headers(self, headers):
-        rules.factory({'headers': {}}, {})
-        headers.assert_called_with({'headers': {}}, {})
+    def test_lookup(self):
+        with mock.patch.object(rules, '_lookup_table', {}) as lt:
+            lt['or'] = mock.Mock()
+            rules.factory({'or': {}}, {})
+            lt['or'].assert_called_with({'or': {}}, {})
+
+    def test_known(self):
+        expected = [
+            'or',
+            'recipient',
+            'headers',
+            'header-exists',
+            'is-mailing-list',
+        ]
+        expected.sort()
+        self.assertEqual(
+            expected,
+            list(sorted(rules._lookup_table.keys())),
+        )
 
 
 class TestOr(base.TestCase):

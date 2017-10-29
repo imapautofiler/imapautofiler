@@ -14,36 +14,15 @@ import abc
 import logging
 import re
 
-
-def factory(rule_data, cfg):
-    """Create a rule processor.
-
-    :param rule_data: portion of configuration describing the rule
-    :type rule_data: dict
-    :param cfg: full configuration data
-    :type cfg: dict
-
-    Using the rule type, instantiate a rule processor that can check
-    the rule against a message.
-
-    """
-    if 'or' in rule_data:
-        return Or(rule_data, cfg)
-    if 'headers' in rule_data:
-        return Headers(rule_data, cfg)
-    if 'recipient' in rule_data:
-        return Recipient(rule_data, cfg)
-    if 'header-exists' in rule_data:
-        return HeaderExists(rule_data, cfg)
-    if 'is-mailing-list' in rule_data:
-        return IsMailingList(rule_data, cfg)
-    raise ValueError('Unknown rule type {!r}'.format(rule_data))
+from imapautofiler import lookup
 
 
 class Rule(metaclass=abc.ABCMeta):
     "Base class"
 
     _log = logging.getLogger(__name__)
+
+    NAME = None
 
     def __init__(self, rule_data, cfg):
         """Initialize the rule.
@@ -85,6 +64,7 @@ class Or(Rule):
     """
 
     _log = logging.getLogger('Or')
+    NAME = 'or'
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -110,6 +90,7 @@ class Recipient(Or):
     """
 
     _log = logging.getLogger('Recipient')
+    NAME = 'recipient'
 
     def __init__(self, rule_data, cfg):
         rules = []
@@ -136,6 +117,7 @@ class Headers(Rule):
     """
 
     _log = logging.getLogger('Headers')
+    NAME = 'headers'
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -159,6 +141,7 @@ class HeaderSubString(Rule):
     "Implements substring matching for headers."
 
     _log = logging.getLogger('HeaderSubString')
+    NAME = None
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -175,6 +158,7 @@ class HeaderRegex(Rule):
     "Implements regular expression matching for headers."
 
     _log = logging.getLogger('HeaderRegex')
+    NAME = None
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -191,6 +175,7 @@ class HeaderExists(Rule):
     "Looks for a message to have a given header."
 
     _log = logging.getLogger('HeaderExists')
+    NAME = 'header-exists'
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -205,8 +190,32 @@ class IsMailingList(HeaderExists):
     "Looks for a message to have a given header."
 
     _log = logging.getLogger('IsMailingList')
+    NAME = 'is-mailing-list'
 
     def __init__(self, rule_data, cfg):
         if 'name' not in rule_data:
             rule_data['name'] = 'list-id'
         super().__init__(rule_data, cfg)
+
+
+_lookup_table = lookup.make_lookup_table(Rule, 'NAME')
+
+
+def factory(rule_data, cfg):
+    """Create a rule processor.
+
+    :param rule_data: portion of configuration describing the rule
+    :type rule_data: dict
+    :param cfg: full configuration data
+    :type cfg: dict
+
+    Using the rule type, instantiate a rule processor that can check
+    the rule against a message.
+
+    """
+    for key in rule_data:
+        if key == 'action':
+            continue
+        if key in _lookup_table:
+            return _lookup_table[key](rule_data, cfg)
+    raise ValueError('Unknown rule type {!r}'.format(rule_data))

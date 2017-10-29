@@ -14,37 +14,14 @@ import abc
 import logging
 import re
 
-
-def factory(action_data, cfg):
-    """Create an Action instance.
-
-    :param action_data: portion of configuration describing the action
-    :type action_data: dict
-    :param cfg: full configuration data
-    :type cfg: dict
-
-    Using the action type, instantiate an action object that can
-    process a message.
-
-    """
-    name = action_data.get('name')
-    if name == 'move':
-        return Move(action_data, cfg)
-    if name == 'sort':
-        return Sort(action_data, cfg)
-    if name == 'sort-mailing-list':
-        return SortMailingList(action_data, cfg)
-    if name == 'delete':
-        return Delete(action_data, cfg)
-    if name == 'trash':
-        return Trash(action_data, cfg)
-    raise ValueError('unrecognized rule action {!r}'.format(action_data))
+from imapautofiler import lookup
 
 
 class Action(metaclass=abc.ABCMeta):
     "Base class"
 
     _log = logging.getLogger(__name__)
+    NAME = None
 
     def __init__(self, action_data, cfg):
         """Initialize the action.
@@ -87,6 +64,7 @@ class Move(Action):
     """
 
     _log = logging.getLogger('Move')
+    NAME = 'move'
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
@@ -136,6 +114,7 @@ class Sort(Action):
     # the regex.
 
     _log = logging.getLogger('Sort')
+    NAME = 'sort'
     _default_header = 'to'
     _default_regex = r'([\w+-]+)@'
 
@@ -217,6 +196,7 @@ class SortMailingList(Sort):
     """
 
     _log = logging.getLogger('SortMailingList')
+    NAME = 'sort-mailing-list'
     _default_header = 'list-id'
     _default_regex = r'<?([^.]+)\..*>?'
 
@@ -232,6 +212,7 @@ class Trash(Move):
     """
 
     _log = logging.getLogger('Trash')
+    NAME = 'trash'
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
@@ -249,6 +230,7 @@ class Delete(Action):
     """
 
     _log = logging.getLogger('Delete')
+    NAME = 'delete'
 
     def invoke(self, conn, mailbox_name, message_id, message):
         self._log.info('%s (%s)', message_id, message['subject'])
@@ -257,3 +239,25 @@ class Delete(Action):
             message_id,
             message,
         )
+
+
+_lookup_table = lookup.make_lookup_table(Action, 'NAME')
+
+
+def factory(action_data, cfg):
+    """Create an Action instance.
+
+    :param action_data: portion of configuration describing the action
+    :type action_data: dict
+    :param cfg: full configuration data
+    :type cfg: dict
+
+    Using the action type, instantiate an action object that can
+    process a message.
+
+    """
+    name = action_data.get('name')
+    print('looking in', _lookup_table)
+    if name in _lookup_table:
+        return _lookup_table[name](action_data, cfg)
+    raise ValueError('unrecognized rule action {!r}'.format(action_data))
