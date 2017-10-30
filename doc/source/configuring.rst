@@ -17,7 +17,22 @@ Each configuration file can hold one server specification.
     hostname: example.com
     username: my-user@example.com
 
-The connection section can optionally include a password.
+imapautofiler also supports using the ``keyring`` module to store and retrieve a
+password from your system keyring:
+
+.. code-block:: yaml
+
+  server:
+    hostname: example.com
+    username: my-user@example.com
+    use_keyring: true
+
+In this scenario, you will be asked for the password on first run. The password
+will be stored in your operating system's secure keyring and reused when running
+the app.
+
+If you do not want to use the keyring, the connection section can optionally
+include a password.
 
 .. code-block:: yaml
 
@@ -32,8 +47,8 @@ The connection section can optionally include a password.
   is only recommended when the configuration file is kept secure by
   other means.
 
-If the password is not provided in the configuration file,
-``imapautofiler`` will prompt for a value when it tries to connect to
+If the password is not provided in the configuration file and ``use_keyring`` is
+not true, ``imapautofiler`` will prompt for a value when it tries to connect to
 the server.
 
 Maildir Location
