@@ -75,6 +75,22 @@ The rules are organized by mailbox, and then listed in order. The
 first rule that matches a message triggers the associated action, and
 then processing for that message stops.
 
+Expiration Rules
+----------------
+
+An Expiration ``expired`` rule is added by specifying the 'age',
+number of days for the email to "live" in the specified mailbox.
+If the message(s) has/have been in the mailbox for more than the
+specified number of days without being moved to a destination area.
+If age = 0, the rule is ignored.
+
+.. code-block:: yaml
+
+   - expired:
+       age: 30
+     action:
+       name: trash
+
 Header Rules
 ------------
 
