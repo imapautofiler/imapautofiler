@@ -13,7 +13,8 @@
 import abc
 import logging
 import re
-
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timedelta
 from imapautofiler import i18n
 from imapautofiler import lookup
 
@@ -252,6 +253,27 @@ class IsMailingList(HeaderExists):
         if 'name' not in rule_data:
             rule_data['name'] = 'list-id'
         super().__init__(rule_data, cfg)
+
+
+class TimeLimit(Rule):
+    """True if message is older than the specified 'age' measured
+     in number of days."""
+
+    _log = logging.getLogger('TimeLimit')
+    NAME = 'time-limit'
+
+    def __init__(self, rule_data, cfg, ):
+        super().__init__(rule_data, cfg)
+        self._age = rule_data['time-limit']['age']
+
+    def check(self, message):
+        date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
+        if self._age:
+            time_limit = datetime.now() - timedelta(days=self._age)
+            if date <= time_limit:
+                return True
+            else:
+                return 0
 
 
 _lookup_table = lookup.make_lookup_table(Rule, 'NAME')

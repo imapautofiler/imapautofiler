@@ -14,9 +14,10 @@ import email.parser
 import logging
 from email.header import Header
 from email.message import Message
-
 import fixtures
 import testtools
+from email.utils import format_datetime
+import datetime
 
 
 def construct_message(headers):
@@ -29,6 +30,10 @@ def construct_message(headers):
     return msg.as_string()
 
 
+date = format_datetime(datetime.datetime.now())
+past_date = format_datetime(
+    datetime.datetime.now() - datetime.timedelta(days=90)
+)
 MESSAGE = {
     'From': 'Sender Name <sender@example.com>',
     'Content-Type':
@@ -38,7 +43,7 @@ MESSAGE = {
     'Mime-Version': '1.0 (Mac OS X Mail 9.2 \(3112\))',
     'X-Smtp-Server': 'AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9',
     'Subject': 'Re: reply to previous message',
-    'Date': 'Sat, 23 Jan 2016 16:19:10 -0500',
+    'Date': '{}'.format(past_date),
     'X-Universally-Unique-Identifier': 'CC844EE1-C406-4ABA-9DA5-685759BBC15A',
     'References': '<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>',
     'To': 'recipient1@example.com',
@@ -54,9 +59,15 @@ I18N_MESSAGE.update({
     'Subject': 'Re: ответ на предыдущее сообщение',
 })
 
+RECENT_MESSAGE = MESSAGE.copy()
+RECENT_MESSAGE.update({
+    'Date': '{}'.format(date),
+})
+
 
 class TestCase(testtools.TestCase):
     _msg = None
+    _recent_msg = None
 
     def setUp(self):
         super().setUp()
@@ -81,3 +92,11 @@ class TestCase(testtools.TestCase):
                 construct_message(I18N_MESSAGE)
             )
         return self._msg
+
+    @property
+    def recent_msg(self):
+        if self._recent_msg is None:
+            self._recent_msg = email.parser.Parser().parsestr(
+                construct_message(RECENT_MESSAGE)
+            )
+        return self._recent_msg
