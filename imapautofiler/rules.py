@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -13,6 +14,8 @@
 import abc
 import logging
 import re
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timedelta
 
 from imapautofiler import i18n
 from imapautofiler import lookup
@@ -206,10 +209,17 @@ class HeaderSubString(_HeaderMatcher):
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
         self._value = rule_data.get('substring', '')
+        self._substring = ''
 
     def _check_rule(self, header_value):
         self._log.debug('%r in %r', self._value, header_value)
         return self._value in header_value.lower()
+        self._substring = rule_data['substring'].lower()
+
+    def check(self, message):
+        header_value = message.get(self._header_name, '').lower()
+        self._log.debug('%r in %r', self._substring, header_value)
+        return (self._substring in header_value)
 
 
 class HeaderRegex(_HeaderMatcher):
@@ -254,6 +264,28 @@ class IsMailingList(HeaderExists):
         super().__init__(rule_data, cfg)
 
 
+class Expired(Rule):
+    """Compares date of message against specified 'age' limit
+    measured in number of days."""
+
+    _log = logging.getLogger('Expired')
+    NAME = 'expired'
+
+    def __init__(self, rule_data, cfg, ):
+        super().__init__(rule_data, cfg)
+        self._age = rule_data['expired']['age']
+
+    def check(self, message):
+        date = parsedate_to_datetime(message['date'])
+
+        if self._age:
+            max_mail_life = datetime.now() - timedelta(days=self ._age)
+            if date <= max_mail_life:
+                return True
+            else:
+                return 0
+
+
 _lookup_table = lookup.make_lookup_table(Rule, 'NAME')
 
 
@@ -275,3 +307,6 @@ def factory(rule_data, cfg):
         if key in _lookup_table:
             return _lookup_table[key](rule_data, cfg)
     raise ValueError('Unknown rule type {!r}'.format(rule_data))
+    header_value = message.get(self._header_name, '').lower()
+    self._log.debug('%r in %r', self._regex.pattern, header_value)
+    return bool(self._regex.search(header_value))
