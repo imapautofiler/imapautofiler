@@ -245,7 +245,7 @@ Here's an example of a configuration file with all the possible parts.
       username: user@example.com
       password: xxxxxxxxxxxxxx
 
-      trash-mailbox: "[Gmail]/Trash"
+    trash-mailbox: "[Gmail]/Trash"
 
     mailboxes:
     - name: INBOX
