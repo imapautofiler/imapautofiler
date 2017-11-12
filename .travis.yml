@@ -19,7 +19,7 @@ matrix:
 # install pbr to avoid any setup_requires funkiness with
 # pip/setuptools.
 before_install:
-  - pip uninstall -y nose pytest mock
+  - pip uninstall -y pytest
   - pip install pbr
 
 install: pip install .[test] .[docs]

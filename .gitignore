@@ -15,3 +15,4 @@ dist/
 pbr-*.egg/
 cover/
 .coverage.*
+.cache

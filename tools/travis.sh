@@ -16,6 +16,5 @@ case "$BUILD" in
     linter)
         flake8;;
     *)
-        python setup.py test --coverage --slowest --testr-args='';
-        coverage report --show-missing;;
+        pytest -v --cov=imapautofiler --cov-report term-missing $@;;
 esac
