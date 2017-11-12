@@ -16,12 +16,13 @@
 import abc
 import contextlib
 import email.parser
-import getpass
 import logging
 import mailbox
 import os
 
 import imapclient
+
+from . import secrets
 
 LOG = logging.getLogger('imapautofiler.client')
 
@@ -123,9 +124,7 @@ class IMAPClient(Client):
             ssl=True,
         )
         username = cfg['server']['username']
-        password = cfg['server'].get('password')
-        if not password:
-            password = getpass.getpass('Password for {}:'.format(username))
+        password = secrets.get_password(cfg)
         self._conn.login(username, password)
 
     def list_mailboxes(self):
