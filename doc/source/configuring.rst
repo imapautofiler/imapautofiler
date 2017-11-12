@@ -17,8 +17,10 @@ Each configuration file can hold one server specification.
     hostname: example.com
     username: my-user@example.com
 
-imapautofiler also supports using the ``keyring`` module to store and retrieve a
+imapautofiler also supports using the keyring_ module to store and retrieve a
 password from your system keyring:
+
+.. _keyring: https://pypi.python.org/pypi/keyring
 
 .. code-block:: yaml
 
