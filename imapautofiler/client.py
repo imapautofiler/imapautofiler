@@ -114,16 +114,18 @@ class Client(metaclass=abc.ABCMeta):
     def close(self):
         "Close the connection, flushing any pending changes."
 
-'/Users/olsenmo/Desktop/internal.pem'
+
 class IMAPClient(Client):
 
     def __init__(self, cfg):
         super().__init__(cfg)
 
         # Use default client behavior if ca_file not provided.
-        context = None  
+        context = None
         if 'ca_file' in cfg['server']:
-            context = ssl.create_default_context(cafile=cfg['server']['ca_file'])
+            context = ssl.create_default_context(
+                cafile=cfg['server']['ca_file']
+            )
 
         self._conn = imapclient.IMAPClient(
             cfg['server']['hostname'],
