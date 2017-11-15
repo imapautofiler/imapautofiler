@@ -16,3 +16,4 @@ pbr-*.egg/
 cover/
 .coverage.*
 .cache
+.eggs/
