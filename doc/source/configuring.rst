@@ -53,6 +53,18 @@ If the password is not provided in the configuration file and ``use_keyring`` is
 not true, ``imapautofiler`` will prompt for a value when it tries to connect to
 the server.
 
+You can also optionally provide the IMAP servers port and a custom CA file.
+This is helpful if your company uses custom ports and self issued certs.
+
+.. code-block:: yaml
+
+  server:
+    hostname: example.com
+    username: my-user@example.com
+    port: 1234
+    ca_file: path/to/ca_file.pem
+
+
 Maildir Location
 ================
 
