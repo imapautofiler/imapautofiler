@@ -37,6 +37,7 @@ class TestFactory(unittest.TestCase):
             'or',
             'and',
             'recipient',
+            'time-limit',
             'headers',
             'header-exists',
             'is-mailing-list',
@@ -475,3 +476,22 @@ class TestRecipient(base.TestCase):
             },
             r._data,
         )
+
+
+class TestTimeLimit(base.TestCase):
+    """Test TimeLimit class handling of passed and permitted messages."""
+    def get_def(self):
+        rule_def = {
+            'time-limit': {
+                'age': 30,
+            }
+        }
+        return rule_def
+
+    def test_time_limit_expired(self):
+        r = rules.TimeLimit(self.get_def(), {})
+        self.assertTrue(r.check(self.msg))
+
+    def test_time_limit_current(self):
+        r = rules.TimeLimit(self.get_def(), {})
+        self.assertEqual(r.check(self.recent_msg), 0)

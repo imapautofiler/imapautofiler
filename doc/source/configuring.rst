@@ -118,6 +118,18 @@ The rules are organized by mailbox, and then listed in order. The
 first rule that matches a message triggers the associated action, and
 then processing for that message stops.
 
+TimeLimit Rules
+----------------
+
+An Time Limit ``time-limit`` rule is added by specifying the 'age',
+number of days for the email to "live" in the specified mailbox.
+If age = 0, the rule is ignored.
+
+.. code-block:: yaml
+
+   - time-limit:
+       age: 30
+
 Header Rules
 ------------
 
