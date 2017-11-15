@@ -74,10 +74,12 @@ class TestCase(testtools.TestCase):
             )
         return self._msg
 
+    _i18n_msg = None
+
     @property
     def i18n_msg(self):
-        if self._msg is None:
-            self._msg = email.parser.Parser().parsestr(
+        if self._i18n_msg is None:
+            self._i18n_msg = email.parser.Parser().parsestr(
                 construct_message(I18N_MESSAGE)
             )
-        return self._msg
+        return self._i18n_msg
