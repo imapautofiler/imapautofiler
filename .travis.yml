@@ -14,12 +14,12 @@ matrix:
     - env: BUILD=docs
     - env: BUILD=linter
 
-# travis pre-installs some packages that may conflict with
-# testrepository, so remove them before we set ourselves up. Also
+# travis pre-installs some packages that may conflict with our test
+# dependencies, so remove them before we set ourselves up. Also
 # install pbr to avoid any setup_requires funkiness with
 # pip/setuptools.
 before_install:
-  - pip uninstall -y nose pytest mock
+  - pip uninstall -y nose mock
   - pip install pbr
 
 install: pip install .[test] .[docs]

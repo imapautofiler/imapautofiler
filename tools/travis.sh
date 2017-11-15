@@ -4,6 +4,8 @@
 # .travis.yml. When the variable is unset, assume we should run the
 # standard test suite.
 
+rootdir=$(dirname $(dirname $0))
+
 # Show the commands being run.
 set -x
 
@@ -16,6 +18,9 @@ case "$BUILD" in
     linter)
         flake8;;
     *)
-        python setup.py test --coverage --slowest --testr-args='';
-        coverage report --show-missing;;
+        pytest -v \
+               --cov=imapautofiler \
+               --cov-report term-missing \
+               --cov-config $rootdir/.coveragerc \
+               $@;;
 esac
