@@ -15,6 +15,26 @@ import unittest.mock as mock
 
 from imapautofiler import rules
 from imapautofiler.tests import base
+from imapautofiler.tests.base import pytest_generate_tests  # noqa
+
+
+class TestRegisteredFactories(object):
+    _names = [
+        'or',
+        'and',
+        'recipient',
+        'time-limit',
+        'headers',
+        'header-exists',
+        'is-mailing-list',
+    ]
+    scenarios = [
+        (name, {'name': name})
+        for name in _names
+    ]
+
+    def test_known(self, name):
+        assert name in rules._lookup_table
 
 
 class TestFactory(unittest.TestCase):
@@ -31,22 +51,6 @@ class TestFactory(unittest.TestCase):
             lt['or'] = mock.Mock()
             rules.factory({'or': {}}, {})
             lt['or'].assert_called_with({'or': {}}, {})
-
-    def test_known(self):
-        expected = [
-            'or',
-            'and',
-            'recipient',
-            'time-limit',
-            'headers',
-            'header-exists',
-            'is-mailing-list',
-        ]
-        expected.sort()
-        self.assertEqual(
-            expected,
-            list(sorted(rules._lookup_table.keys())),
-        )
 
 
 class TestOr(base.TestCase):

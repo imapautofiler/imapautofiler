@@ -15,6 +15,24 @@ import unittest.mock as mock
 
 from imapautofiler import actions
 from imapautofiler.tests import base
+from imapautofiler.tests.base import pytest_generate_tests  # noqa
+
+
+class TestRegisteredFactories(object):
+    _names = [
+        'move',
+        'sort',
+        'sort-mailing-list',
+        'trash',
+        'delete',
+    ]
+    scenarios = [
+        (name, {'name': name})
+        for name in _names
+    ]
+
+    def test_known(self, name):
+        assert name in actions._lookup_table
 
 
 class TestFactory(unittest.TestCase):
@@ -31,20 +49,6 @@ class TestFactory(unittest.TestCase):
             lt['move'] = mock.Mock()
             actions.factory({'name': 'move'}, {})
             lt['move'].assert_called_with({'name': 'move'}, {})
-
-    def test_known(self):
-        expected = [
-            'move',
-            'sort',
-            'sort-mailing-list',
-            'trash',
-            'delete',
-        ]
-        expected.sort()
-        self.assertEqual(
-            expected,
-            list(sorted(actions._lookup_table.keys())),
-        )
 
 
 class TestMove(base.TestCase):
