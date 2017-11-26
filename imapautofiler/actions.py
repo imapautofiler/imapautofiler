@@ -258,7 +258,6 @@ def factory(action_data, cfg):
 
     """
     name = action_data.get('name')
-    print('looking in', _lookup_table)
     if name in _lookup_table:
         return _lookup_table[name](action_data, cfg)
     raise ValueError('unrecognized rule action {!r}'.format(action_data))
