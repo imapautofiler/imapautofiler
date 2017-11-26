@@ -65,8 +65,8 @@ class Or(Rule):
 
     """
 
-    _log = logging.getLogger('Or')
     NAME = 'or'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -92,8 +92,8 @@ class And(Rule):
 
     """
 
-    _log = logging.getLogger('And')
     NAME = 'and'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -118,8 +118,8 @@ class Recipient(Or):
 
     """
 
-    _log = logging.getLogger('Recipient')
     NAME = 'recipient'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         rules = []
@@ -145,8 +145,8 @@ class Headers(Rule):
 
     """
 
-    _log = logging.getLogger('Headers')
     NAME = 'headers'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -169,7 +169,7 @@ class Headers(Rule):
 
 
 class _HeaderMatcher(Rule):
-    _log = logging.getLogger('Header')
+    _log = logging.getLogger('header')
     NAME = None  # matchers cannot be used directly
 
     def __init__(self, rule_data, cfg):
@@ -187,7 +187,7 @@ class _HeaderMatcher(Rule):
 
 
 class HeaderExactValue(_HeaderMatcher):
-    _log = logging.getLogger('HeaderExactValue')
+    _log = logging.getLogger('header-exact-value')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -202,7 +202,7 @@ class HeaderExactValue(_HeaderMatcher):
 class HeaderSubString(_HeaderMatcher):
     "Implements substring matching for headers."
 
-    _log = logging.getLogger('HeaderSubString')
+    _log = logging.getLogger('header-substring')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -216,7 +216,7 @@ class HeaderSubString(_HeaderMatcher):
 class HeaderRegex(_HeaderMatcher):
     "Implements regular expression matching for headers."
 
-    _log = logging.getLogger('HeaderRegex')
+    _log = logging.getLogger('header-regex')
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -231,8 +231,8 @@ class HeaderRegex(_HeaderMatcher):
 class HeaderExists(Rule):
     "Looks for a message to have a given header."
 
-    _log = logging.getLogger('HeaderExists')
     NAME = 'header-exists'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
@@ -246,8 +246,8 @@ class HeaderExists(Rule):
 class IsMailingList(HeaderExists):
     "Looks for a message to have a given header."
 
-    _log = logging.getLogger('IsMailingList')
     NAME = 'is-mailing-list'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         if 'name' not in rule_data:
@@ -259,8 +259,8 @@ class TimeLimit(Rule):
     """True if message is older than the specified 'age' measured
      in number of days."""
 
-    _log = logging.getLogger('TimeLimit')
     NAME = 'time-limit'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg, ):
         super().__init__(rule_data, cfg)
