@@ -64,8 +64,8 @@ class Move(Action):
 
     """
 
-    _log = logging.getLogger('Move')
     NAME = 'move'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
@@ -114,8 +114,8 @@ class Sort(Action):
     # TODO(dhellmann): Extend this class to support named groups in
     # the regex.
 
-    _log = logging.getLogger('Sort')
     NAME = 'sort'
+    _log = logging.getLogger(NAME)
     _default_header = 'to'
     _default_regex = r'([\w+-]+)@'
 
@@ -196,8 +196,8 @@ class SortMailingList(Sort):
 
     """
 
-    _log = logging.getLogger('SortMailingList')
     NAME = 'sort-mailing-list'
+    _log = logging.getLogger(NAME)
     _default_header = 'list-id'
     _default_regex = r'<?([^.]+)\..*>?'
 
@@ -212,8 +212,8 @@ class Trash(Move):
 
     """
 
-    _log = logging.getLogger('Trash')
     NAME = 'trash'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
@@ -230,8 +230,8 @@ class Delete(Action):
 
     """
 
-    _log = logging.getLogger('Delete')
     NAME = 'delete'
+    _log = logging.getLogger(NAME)
 
     def invoke(self, conn, mailbox_name, message_id, message):
         self._log.info('%s (%s)', message_id, message['subject'])
