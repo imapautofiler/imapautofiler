@@ -38,6 +38,10 @@ class Action(metaclass=abc.ABCMeta):
         self._log.debug('new: %r', action_data)
 
     @abc.abstractmethod
+    def report(self, conn, mailbox_name, message_id, message):
+        "Log a message explaining what action will be taken."
+
+    @abc.abstractmethod
     def invoke(self, conn, mailbox_name, message_id, message):
         """Run the action on the message.
 
@@ -71,11 +75,13 @@ class Move(Action):
         super().__init__(action_data, cfg)
         self._dest_mailbox = self._data.get('dest-mailbox')
 
-    def invoke(self, conn, src_mailbox, message_id, message):
+    def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
             '%s (%s) to %s',
             message_id, message['subject'],
             self._dest_mailbox)
+
+    def invoke(self, conn, src_mailbox, message_id, message):
         conn.move_message(
             src_mailbox,
             self._dest_mailbox,
@@ -171,12 +177,15 @@ class Sort(Action):
             match.groups()[self._dest_mailbox_regex_group],
         )
 
-    def invoke(self, conn, src_mailbox, message_id, message):
+    def report(self, conn, src_mailbox, message_id, message):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         self._log.info(
             '%s (%s) to %s',
             message_id, message['subject'],
             dest_mailbox)
+
+    def invoke(self, conn, src_mailbox, message_id, message):
+        dest_mailbox = self._get_dest_mailbox(message_id, message)
         conn.move_message(
             src_mailbox,
             dest_mailbox,
@@ -233,8 +242,10 @@ class Delete(Action):
     NAME = 'delete'
     _log = logging.getLogger(NAME)
 
-    def invoke(self, conn, mailbox_name, message_id, message):
+    def report(self, conn, mailbox_name, message_id, message):
         self._log.info('%s (%s)', message_id, message['subject'])
+
+    def invoke(self, conn, mailbox_name, message_id, message):
         conn.delete_message(
             mailbox_name,
             message_id,
