@@ -38,6 +38,10 @@ class Action(metaclass=abc.ABCMeta):
         self._log.debug('new: %r', action_data)
 
     @abc.abstractmethod
+    def report(self, conn, mailbox_name, message_id, message):
+        "Log a message explaining what action will be taken."
+
+    @abc.abstractmethod
     def invoke(self, conn, mailbox_name, message_id, message):
         """Run the action on the message.
 
@@ -64,18 +68,20 @@ class Move(Action):
 
     """
 
-    _log = logging.getLogger('Move')
     NAME = 'move'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
         self._dest_mailbox = self._data.get('dest-mailbox')
 
-    def invoke(self, conn, src_mailbox, message_id, message):
+    def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
             '%s (%s) to %s',
             message_id, message['subject'],
             self._dest_mailbox)
+
+    def invoke(self, conn, src_mailbox, message_id, message):
         conn.move_message(
             src_mailbox,
             self._dest_mailbox,
@@ -114,8 +120,8 @@ class Sort(Action):
     # TODO(dhellmann): Extend this class to support named groups in
     # the regex.
 
-    _log = logging.getLogger('Sort')
     NAME = 'sort'
+    _log = logging.getLogger(NAME)
     _default_header = 'to'
     _default_regex = r'([\w+-]+)@'
 
@@ -171,12 +177,15 @@ class Sort(Action):
             match.groups()[self._dest_mailbox_regex_group],
         )
 
-    def invoke(self, conn, src_mailbox, message_id, message):
+    def report(self, conn, src_mailbox, message_id, message):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         self._log.info(
             '%s (%s) to %s',
             message_id, message['subject'],
             dest_mailbox)
+
+    def invoke(self, conn, src_mailbox, message_id, message):
+        dest_mailbox = self._get_dest_mailbox(message_id, message)
         conn.move_message(
             src_mailbox,
             dest_mailbox,
@@ -196,8 +205,8 @@ class SortMailingList(Sort):
 
     """
 
-    _log = logging.getLogger('SortMailingList')
     NAME = 'sort-mailing-list'
+    _log = logging.getLogger(NAME)
     _default_header = 'list-id'
     _default_regex = r'<?([^.]+)\..*>?'
 
@@ -212,8 +221,8 @@ class Trash(Move):
 
     """
 
-    _log = logging.getLogger('Trash')
     NAME = 'trash'
+    _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
@@ -230,11 +239,13 @@ class Delete(Action):
 
     """
 
-    _log = logging.getLogger('Delete')
     NAME = 'delete'
+    _log = logging.getLogger(NAME)
+
+    def report(self, conn, mailbox_name, message_id, message):
+        self._log.info('%s (%s)', message_id, message['subject'])
 
     def invoke(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id, message['subject'])
         conn.delete_message(
             mailbox_name,
             message_id,
@@ -258,7 +269,6 @@ def factory(action_data, cfg):
 
     """
     name = action_data.get('name')
-    print('looking in', _lookup_table)
     if name in _lookup_table:
         return _lookup_table[name](action_data, cfg)
     raise ValueError('unrecognized rule action {!r}'.format(action_data))

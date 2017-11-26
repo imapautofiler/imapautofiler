@@ -43,7 +43,7 @@ def list_mailboxes(cfg, debug, conn):
         print(f)
 
 
-def process_rules(cfg, debug, conn):
+def process_rules(cfg, debug, conn, dry_run=False):
     """Run the rules from the configuration file.
 
     :param cfg: full configuration
@@ -77,10 +77,13 @@ def process_rules(cfg, debug, conn):
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
                     try:
-                        action.invoke(conn, mailbox_name, msg_id, message)
+                        action.report(conn, mailbox_name, msg_id, message)
+                        if not dry_run:
+                            action.invoke(conn, mailbox_name, msg_id,
+                                          message)
                     except Exception as err:
                         LOG.error('failed to %s "%s": %s',
-                                  action.__class__.__name__.lower(),
+                                  action.NAME,
                                   message['subject'], err)
                         num_errors += 1
                     else:
@@ -127,6 +130,12 @@ def main(args=None):
         action='store_true',
         help='instead of processing rules, print a list of mailboxes',
     )
+    parser.add_argument(
+        '-n', '--dry-run',
+        default=False,
+        action='store_true',
+        help='process the rules without taking any action',
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -150,7 +159,7 @@ def main(args=None):
             if args.list_mailboxes:
                 list_mailboxes(cfg, args.debug, conn)
             else:
-                process_rules(cfg, args.debug, conn)
+                process_rules(cfg, args.debug, conn, args.dry_run)
         finally:
             conn.close()
     except Exception as err:
