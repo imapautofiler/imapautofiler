@@ -78,7 +78,7 @@ class Move(Action):
     def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
             '%s (%s) to %s',
-            message_id, message['subject'],
+            message_id, i18n.get_header_value(message, 'subject'),
             self._dest_mailbox)
 
     def invoke(self, conn, src_mailbox, message_id, message):
@@ -181,7 +181,7 @@ class Sort(Action):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         self._log.info(
             '%s (%s) to %s',
-            message_id, message['subject'],
+            message_id, i18n.get_header_value(message, 'subject'),
             dest_mailbox)
 
     def invoke(self, conn, src_mailbox, message_id, message):
@@ -243,7 +243,8 @@ class Delete(Action):
     _log = logging.getLogger(NAME)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id, message['subject'])
+        self._log.info('%s (%s)', message_id,
+                       i18n.get_header_value(message, 'subject'))
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.delete_message(
