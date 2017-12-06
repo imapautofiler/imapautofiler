@@ -17,7 +17,7 @@ from email.message import Message
 import fixtures
 import testtools
 from email.utils import format_datetime
-import datetime
+from datetime import datetime, timezone, timedelta
 
 
 def construct_message(headers):
@@ -30,9 +30,9 @@ def construct_message(headers):
     return msg.as_string()
 
 
-date = format_datetime(datetime.datetime.now())
+date = format_datetime(datetime.now(timezone.utc))
 past_date = format_datetime(
-    datetime.datetime.now() - datetime.timedelta(days=90)
+    datetime.now(timezone.utc) - timedelta(days=90)
 )
 MESSAGE = {
     'From': 'Sender Name <sender@example.com>',
@@ -43,7 +43,7 @@ MESSAGE = {
     'Mime-Version': '1.0 (Mac OS X Mail 9.2 \(3112\))',
     'X-Smtp-Server': 'AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9',
     'Subject': 'Re: reply to previous message',
-    'Date': '{}'.format(past_date),
+    'Date': past_date,
     'X-Universally-Unique-Identifier': 'CC844EE1-C406-4ABA-9DA5-685759BBC15A',
     'References': '<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>',
     'To': 'recipient1@example.com',
@@ -61,7 +61,12 @@ I18N_MESSAGE.update({
 
 RECENT_MESSAGE = MESSAGE.copy()
 RECENT_MESSAGE.update({
-    'Date': '{}'.format(date),
+    'Date': date,
+})
+
+WITHOUT_OFFSET_MESSAGE = MESSAGE.copy()
+WITHOUT_OFFSET_MESSAGE.update({
+    'Date': 'Thu, 07 Sep 2000 20:57:30 -0000',
 })
 
 
@@ -69,6 +74,7 @@ class TestCase(testtools.TestCase):
     _msg = None
     _recent_msg = None
     _i18n_msg = None
+    _without_offset_msg = None
 
     def setUp(self):
         super().setUp()
@@ -101,6 +107,14 @@ class TestCase(testtools.TestCase):
                 construct_message(RECENT_MESSAGE)
             )
         return self._recent_msg
+
+    @property
+    def without_offset_msg(self):
+        if self._without_offset_msg is None:
+            self._without_offset_msg = email.parser.Parser().parsestr(
+                construct_message(WITHOUT_OFFSET_MESSAGE)
+            )
+        return self._without_offset_msg
 
 
 def pytest_generate_tests(metafunc):

@@ -499,3 +499,7 @@ class TestTimeLimit(base.TestCase):
     def test_time_limit_current(self):
         r = rules.TimeLimit(self.get_def(), {})
         self.assertEqual(r.check(self.recent_msg), 0)
+
+    def test_time_limit_expired_without_offset(self):
+        r = rules.TimeLimit(self.get_def(), {})
+        self.assertTrue(r.check(self.without_offset_msg))
