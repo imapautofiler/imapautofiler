@@ -268,8 +268,9 @@ class TimeLimit(Rule):
 
     def check(self, message):
         date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
+        msg_tz = date.tzinfo
         if self._age:
-            time_limit = datetime.now() - timedelta(days=self._age)
+            time_limit = datetime.now(tz=msg_tz) - timedelta(days=self._age)
             if date <= time_limit:
                 return True
             else:
