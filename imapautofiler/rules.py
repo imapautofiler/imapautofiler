@@ -206,7 +206,7 @@ class HeaderSubString(_HeaderMatcher):
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._value = rule_data.get('substring', '')
+        self._value = rule_data.get('substring', '').lower()
 
     def _check_rule(self, header_value):
         self._log.debug('%r in %r', self._value, header_value)

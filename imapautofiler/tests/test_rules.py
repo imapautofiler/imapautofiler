@@ -264,6 +264,14 @@ class TestHeaderSubString(base.TestCase):
         r = rules.HeaderSubString(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
+    def test_match_case_insensitive(self):
+        rule_def = {
+            'name': 'to',
+            'substring': 'RECIPIENT1@EXAMPLE.COM',
+        }
+        r = rules.HeaderSubString(rule_def, {})
+        self.assertTrue(r.check(self.msg))
+
     def test_no_match(self):
         rule_def = {
             'name': 'to',
