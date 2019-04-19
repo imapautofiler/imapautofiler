@@ -10,14 +10,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import email.parser
-import logging
 from email.header import Header
 from email.message import Message
-import fixtures
-import testtools
 from email.utils import format_datetime
-import datetime
+import logging
+import unittest
+
+import fixtures
 
 
 def construct_message(headers):
@@ -40,7 +41,7 @@ MESSAGE = {
         'multipart/alternative; '
         'boundary="Apple-Mail=_F10D7C06-52F7-4F60-BEC9-4D5F29A9BFE1"',
     'Message-Id': '<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>',
-    'Mime-Version': '1.0 (Mac OS X Mail 9.2 \(3112\))',
+    'Mime-Version': r'1.0 (Mac OS X Mail 9.2 \(3112\))',
     'X-Smtp-Server': 'AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9',
     'Subject': 'Re: reply to previous message',
     'Date': '{}'.format(past_date),
@@ -65,7 +66,7 @@ RECENT_MESSAGE.update({
 })
 
 
-class TestCase(testtools.TestCase):
+class TestCase(unittest.TestCase):
     _msg = None
     _recent_msg = None
     _i18n_msg = None
@@ -77,6 +78,11 @@ class TestCase(testtools.TestCase):
         # Capturing printing
         stdout = self.useFixture(fixtures.StringStream('stdout')).stream
         self.useFixture(fixtures.MonkeyPatch('sys.stdout', stdout))
+
+    def useFixture(self, f):
+        f.setUp()
+        self.addCleanup(f.cleanUp)
+        return f
 
     @property
     def msg(self):

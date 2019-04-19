@@ -91,7 +91,7 @@ class Move(Action):
 
 
 class Sort(Action):
-    """Move the message based on parsing a destination from a header.
+    r"""Move the message based on parsing a destination from a header.
 
     The action is indicated with the name ``sort``.
 
@@ -195,7 +195,7 @@ class Sort(Action):
 
 
 class SortMailingList(Sort):
-    """Move the message based on the mailing list id.
+    r"""Move the message based on the mailing list id.
 
     The action is indicated with the name ``sort-mailing-list``.
 

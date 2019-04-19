@@ -1,8 +1,13 @@
 language: python
 
+# https://docs.travis-ci.com/user/languages/python/
+
+# required for Python >= 3.7
+dist: xenial
+
 python:
-  - "3.5"
   - "3.6"
+  - "3.7"
   - "nightly"
 
 # Test the nightly build of cpython, but ignore any failures.

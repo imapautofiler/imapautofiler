@@ -14,7 +14,7 @@ import email.utils
 import mailbox
 import os.path
 import textwrap
-import testtools
+import unittest
 
 import fixtures
 
@@ -54,7 +54,7 @@ class MaildirFixture(fixtures.Fixture):
         return msg
 
 
-class MaildirTest(testtools.TestCase):
+class MaildirTest(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
@@ -67,6 +67,11 @@ class MaildirTest(testtools.TestCase):
             MaildirFixture(self.tmpdir, 'destination-mailbox')
         )
         self.client = client.MaildirClient({'maildir': self.tmpdir})
+
+    def useFixture(self, f):
+        f.setUp()
+        self.addCleanup(f.cleanUp)
+        return f
 
     def test_list_mailboxes(self):
         expected = set(['destination-mailbox', 'source-mailbox'])
