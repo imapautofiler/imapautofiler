@@ -1,5 +1,10 @@
 language: python
 
+# https://docs.travis-ci.com/user/languages/python/
+
+# required for Python >= 3.7
+dist: xenial
+
 python:
   - "3.6"
   - "3.7"
