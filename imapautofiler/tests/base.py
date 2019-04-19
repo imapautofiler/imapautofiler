@@ -10,14 +10,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import email.parser
-import logging
 from email.header import Header
 from email.message import Message
-import fixtures
-import testtools
 from email.utils import format_datetime
-import datetime
+import logging
+import unittest
+
+import fixtures
 
 
 def construct_message(headers):
@@ -65,7 +66,7 @@ RECENT_MESSAGE.update({
 })
 
 
-class TestCase(testtools.TestCase):
+class TestCase(unittest.TestCase):
     _msg = None
     _recent_msg = None
     _i18n_msg = None
@@ -77,6 +78,11 @@ class TestCase(testtools.TestCase):
         # Capturing printing
         stdout = self.useFixture(fixtures.StringStream('stdout')).stream
         self.useFixture(fixtures.MonkeyPatch('sys.stdout', stdout))
+
+    def useFixture(self, f):
+        f.setUp()
+        self.addCleanup(f.cleanUp)
+        return f
 
     @property
     def msg(self):
