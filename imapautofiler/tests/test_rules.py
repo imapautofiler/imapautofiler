@@ -466,7 +466,7 @@ class TestRecipient(base.TestCase):
             'recipient': {'substring': 'recipient1@example.com'},
         }
         r = rules.Recipient(rule_def, {})
-        self.assertEquals(
+        self.assertEqual(
             {
                 'recipient': {'substring': 'recipient1@example.com'},
                 'or': {
