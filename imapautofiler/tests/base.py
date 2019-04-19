@@ -40,7 +40,7 @@ MESSAGE = {
         'multipart/alternative; '
         'boundary="Apple-Mail=_F10D7C06-52F7-4F60-BEC9-4D5F29A9BFE1"',
     'Message-Id': '<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>',
-    'Mime-Version': '1.0 (Mac OS X Mail 9.2 \(3112\))',
+    'Mime-Version': r'1.0 (Mac OS X Mail 9.2 \(3112\))',
     'X-Smtp-Server': 'AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9',
     'Subject': 'Re: reply to previous message',
     'Date': '{}'.format(past_date),
