@@ -12,6 +12,9 @@ set -x
 # Exit on any error.
 set -e
 
+# Show what we have installed
+pip freeze
+
 case "$BUILD" in
     docs)
         python setup.py build_sphinx;;
