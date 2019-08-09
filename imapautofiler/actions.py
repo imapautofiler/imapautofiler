@@ -68,7 +68,7 @@ class Move(Action):
 
     """
 
-    NAME = 'move'
+    NAME = 'move' c
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -253,6 +253,44 @@ class Delete(Action):
             message,
         )
 
+
+class Mark_as(Action):
+    """
+    Add flag to message
+    """
+
+    NAME = 'mark-as'
+    _log = logging.getLogger(NAME)
+
+    def __init__(self, action_data, cfg, flag):
+        super().__init__(action_data, cfg)
+        self.flag = flag
+
+    def report(self, conn, mailbox_name, message_id, message):
+        self._log.info()
+
+
+    def invoke(self, conn, mailbox_name, message_id, message):
+        conn.store(message_id,'+FLAG', '\\{}'.format(self.flag))
+
+class Un_mark(Action):
+    """
+    Remove flag from message
+    """
+
+    NAME = 'un-mark'
+    _log = logging.getLogger(NAME)
+
+    def __init__(self, action_data, cfg, flag):
+        super().__init__(action_data, cfg)
+        self.flag = flag
+
+    def report(self, conn, mailbox_name, message_id, message):
+        self._log.info()
+
+
+    def invoke(self, conn, mailbox_name, message_id, message):
+        conn.store(message_id,'-FLAG', '\\{}'.format(self.flag))
 
 _lookup_table = lookup.make_lookup_table(Action, 'NAME')
 
