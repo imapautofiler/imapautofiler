@@ -68,7 +68,7 @@ class Move(Action):
 
     """
 
-    NAME = 'move' 
+    NAME = 'move'
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -271,6 +271,7 @@ class Mark_as(Action):
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.store(message_id, '+FLAG', '\\{}'.format(self.flag))
+
 
 class Un_mark(Action):
     """
