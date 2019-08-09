@@ -269,7 +269,6 @@ class Mark_as(Action):
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info()
 
-
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.store(message_id,'+FLAG', '\\{}'.format(self.flag))
 
@@ -288,11 +287,10 @@ class Un_mark(Action):
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info()
 
-
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.store(message_id,'-FLAG', '\\{}'.format(self.flag))
 
-        
+
 _lookup_table = lookup.make_lookup_table(Action, 'NAME')
 
 
