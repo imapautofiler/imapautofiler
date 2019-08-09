@@ -261,9 +261,20 @@ class Mark(Action):
 
     NAME = 'mark'
     _log = logging.getLogger(NAME)
+    _flags = (
+        'Seen',
+        'Answered',
+        'Flagged',
+        'Deleted',
+        'Draft',
+        'Recent'
+    )
 
     def __init__(self, action_data, cfg, flag):
         super().__init__(action_data, cfg)
+        if flag not in self._flags:
+            raise RuntimeError('Invalid flag: {} is not a \
+                recognized IMAP attribute'.format(flag))
         self.flag = flag
 
     def report(self, conn, mailbox_name, message_id, message):
@@ -273,7 +284,7 @@ class Mark(Action):
         conn.store(message_id, '+FLAG', '\\{}'.format(self.flag))
 
 
-class Unmark(Action):
+class Unmark(Action, Mark):
     """
     Remove flag from message
     """
@@ -283,6 +294,9 @@ class Unmark(Action):
 
     def __init__(self, action_data, cfg, flag):
         super().__init__(action_data, cfg)
+        if flag not in self._flags:
+            raise RuntimeError('Invalid flag: {} is not a \
+                recognized IMAP attribute'.format(flag))
         self.flag = flag
 
     def report(self, conn, mailbox_name, message_id, message):
