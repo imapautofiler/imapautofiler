@@ -254,12 +254,12 @@ class Delete(Action):
         )
 
 
-class Mark_as(Action):
+class Mark(Action):
     """
     Add flag to message
     """
 
-    NAME = 'mark-as'
+    NAME = 'mark'
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg, flag):
@@ -273,12 +273,12 @@ class Mark_as(Action):
         conn.store(message_id, '+FLAG', '\\{}'.format(self.flag))
 
 
-class Un_mark(Action):
+class Unmark(Action):
     """
     Remove flag from message
     """
 
-    NAME = 'un-mark'
+    NAME = 'unmark'
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg, flag):
