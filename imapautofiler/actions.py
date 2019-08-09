@@ -292,6 +292,7 @@ class Un_mark(Action):
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.store(message_id,'-FLAG', '\\{}'.format(self.flag))
 
+        
 _lookup_table = lookup.make_lookup_table(Action, 'NAME')
 
 
