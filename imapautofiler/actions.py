@@ -284,7 +284,7 @@ class Mark(Action):
         conn.store(message_id, '+FLAG', '\\{}'.format(self.flag))
 
 
-class Unmark(Action):
+class Unmark(Action, Mark):
     """
     Remove flag from message
     """
