@@ -14,7 +14,7 @@ import abc
 import logging
 import re
 from email.utils import parsedate_to_datetime
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from imapautofiler import i18n
 from imapautofiler import lookup
 
@@ -268,8 +268,15 @@ class TimeLimit(Rule):
 
     def check(self, message):
         date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
+
+        # RFC2822 dates ending with '-0000' create timezone naive datetimes
+        # so we need to manually set their timezone so we can compare them
+        # with TZ aware datetimes.
+        if date.tzinfo is None:
+            date = date.replace(tzinfo=timezone.utc)
+
         if self._age:
-            time_limit = datetime.now() - timedelta(days=self._age)
+            time_limit = datetime.now(timezone.utc) - timedelta(days=self._age)
             if date <= time_limit:
                 return True
             else:
