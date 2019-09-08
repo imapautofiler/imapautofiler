@@ -8,3 +8,4 @@
    imapautofiler.i18n.rst
    imapautofiler.lookup.rst
    imapautofiler.rules.rst
+   imapautofiler.secrets.rst
