@@ -15,6 +15,7 @@ the appropriate archive folders.
    configuring
    running
    contributing
+   history
 
 Indices and tables
 ==================

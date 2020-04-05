@@ -1,5 +1,12 @@
 language: python
 
+# Tell travis-ci that we need the full git history. This is necessary
+# for reno in the documentation build. If we do not clone the entire
+# repository, travis does a shallow clone that only gives us the most
+# recent commit.
+git:
+  depth: false
+
 # https://docs.travis-ci.com/user/languages/python/
 
 # required for Python >= 3.7

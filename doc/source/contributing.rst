@@ -82,3 +82,48 @@ where the Maildirs should be created.
 .. code-block:: console
 
    $ tox -e testdata -- /tmp/testdata
+
+Release Notes
+=============
+
+This project uses reno_ for managing release notes. Pull requests with
+bug fixes and new features should include release notes and
+documentation updates.
+
+To create a new release note, use the `reno new` command. Use the
+version of reno that will be used in the automated documentation build
+by setting up the documentation build locally using `tox`.
+
+.. code-block:: shell
+
+   $ tox -e docs
+
+Then, run the reno command from the virtualenv that tox creates,
+passing a "slug" containing a summary of the fix or feature.
+
+.. code-block:: shell
+
+   $ ./.tox/docs/bin/reno new add-reno
+   no configuration file in: ./releasenotes/config.yaml, ./reno.yaml
+   Created new notes file in releasenotes/notes/add-reno-65a040ebe662341a.yaml
+
+Finally, edit the file that was created. Fill in the "features" or
+"fixes" section as appropriate, and remove the rest of the text in the
+file.
+
+To test the build, you will need to `git add` the new file, then run
+tox again.
+
+.. code-block:: shell
+
+   $ git add releasenotes/notes/add-reno-65a040ebe662341a.yaml
+   $ tox -e docs
+
+The output will appear in the file `doc/build/html/history.html`.
+
+.. note::
+
+   Refer to the reno_ documentation for more details about adding,
+   editing, and managing release notes.
+
+.. _reno: https://docs.openstack.org/reno/latest/
