@@ -151,6 +151,11 @@ class Sort(Action):
     character (usually ``.``) if the desired mailbox is a sub-folder
     of the name given.
 
+    The ``dest-mailbox-base`` may include jinja2 template
+    instructions, which are evaluated before the suffix is added to
+    the base. Refer to the description of the ``move`` action for more
+    details about template evaluation.
+
     """
 
     # TODO(dhellmann): Extend this class to support named groups in
@@ -209,7 +214,7 @@ class Sort(Action):
             self._dest_mailbox_regex_group,
         )
         return '{}{}'.format(
-            self._dest_mailbox_base,
+            _render(self._dest_mailbox_base, message),
             match.groups()[self._dest_mailbox_regex_group],
         )
 

@@ -171,6 +171,19 @@ class TestSort(base.TestCase):
             dest,
         )
 
+    def test_get_dest_mailbox_template(self):
+        m = actions.Sort(
+            {'name': 'sort',
+             'dest-mailbox-base': 'lists-go-under-here.{{ date.year }}.',
+             'dest-mailbox-regex': r'(.*)'},
+            {},
+        )
+        dest = m._get_dest_mailbox('id-here', self.without_offset_msg)
+        self.assertEqual(
+            'lists-go-under-here.2000.recipient1@example.com',
+            dest,
+        )
+
     def test_invoke(self):
         m = actions.Sort(
             {'name': 'sort',
