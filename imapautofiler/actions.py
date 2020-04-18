@@ -11,8 +11,11 @@
 #    under the License.
 
 import abc
+from email.utils import parsedate_to_datetime
 import logging
 import re
+
+import jinja2
 
 from imapautofiler import i18n
 from imapautofiler import lookup
@@ -58,6 +61,20 @@ class Action(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
+def _render(template_text, message):
+    template = jinja2.Template(template_text)
+    headers = {
+        name.lower().replace('-', '_'): i18n.get_header_value(message, name)
+        for name in message.keys()
+    }
+    date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
+    headers['date'] = date
+    return template.render(
+        message=message,
+        **headers
+    )
+
+
 class Move(Action):
     """Move the message to a different folder.
 
@@ -66,6 +83,19 @@ class Move(Action):
     The action data must contain a ``dest-mailbox`` entry with the
     name of the destination mailbox.
 
+    The ``dest-mailbox`` value can contain jinja2_ template directives
+    using the headers of the message. For example::
+
+      dest-mailbox: "archive.{{ date.year }}"
+
+    will extract the year value from the date header of the message
+    and insert it into the destination mailbox path.
+
+    Header names are always all lower case and ``-`` is replaced by
+    ``_``.
+
+    .. _jinja2: https://jinja.palletsprojects.com/en/2.11.x/
+
     """
 
     NAME = 'move'
@@ -73,18 +103,24 @@ class Move(Action):
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
-        self._dest_mailbox = self._data.get('dest-mailbox')
+
+    def _get_dest_mailbox(self, message_id, message):
+        return _render(
+            self._data.get('dest-mailbox'),
+            message,
+        )
 
     def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
             '%s (%s) to %s',
             message_id, i18n.get_header_value(message, 'subject'),
-            self._dest_mailbox)
+            self._get_dest_mailbox(message_id, message),
+        )
 
     def invoke(self, conn, src_mailbox, message_id, message):
         conn.move_message(
             src_mailbox,
-            self._dest_mailbox,
+            self._get_dest_mailbox(message_id, message),
             message_id,
             message,
         )
@@ -226,10 +262,14 @@ class Trash(Move):
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
+        self._dest_mailbox = (
+            self._data.get('dest-mailbox') or cfg.get('trash-mailbox'))
         if self._dest_mailbox is None:
-            self._dest_mailbox = cfg.get('trash-mailbox')
-        if self._dest_mailbox is None:
-            raise ValueError('no "trash-mailbox" set in config')
+            raise ValueError(
+                'no "dest-mailbox" or "trash-mailbox" set in config')
+
+    def _get_dest_mailbox(self, message_id, message):
+        return self._dest_mailbox
 
 
 class Delete(Action):

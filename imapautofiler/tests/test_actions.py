@@ -53,12 +53,26 @@ class TestFactory(unittest.TestCase):
 
 class TestMove(base.TestCase):
 
-    def test_create(self):
+    def test_static_mailbox_name(self):
         m = actions.Move(
             {'name': 'move', 'dest-mailbox': 'msg-goes-here'},
             {},
         )
-        self.assertEqual('msg-goes-here', m._dest_mailbox)
+        self.assertEqual(
+            'msg-goes-here',
+            m._get_dest_mailbox('id-here', self.without_offset_msg),
+        )
+
+    def test_parameterized_mailbox_name(self):
+        m = actions.Move(
+            {'name': 'move', 'dest-mailbox': 'archive.{{ date.year }}'},
+            {},
+        )
+        dest_mailbox = m._get_dest_mailbox('id-here', self.without_offset_msg)
+        self.assertEqual(
+            'archive.2000',
+            dest_mailbox,
+        )
 
     def test_invoke(self):
         m = actions.Move(
