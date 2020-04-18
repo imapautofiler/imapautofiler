@@ -31,7 +31,8 @@ password from your system keyring:
 
 In this scenario, you will be asked for the password on first run. The password
 will be stored in your operating system's secure keyring and reused when running
-the app.
+the app. Refer to the keyring_ documentation for more details about setting up
+secure password storage.
 
 If you do not want to use the keyring, the connection section can optionally
 include a password.
