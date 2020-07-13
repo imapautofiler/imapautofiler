@@ -264,6 +264,25 @@ mailing list into the mailbox ``INBOX.PyATL``.
        name: "move"
        dest-mailbox: "INBOX.PyATL"
 
+The ``dest-mailbox`` value can contain jinja2_ template directives
+using the headers of the message. For example
+
+.. code-block:: yaml
+
+   - recipient:
+       substring: "pyatl-list@meetup.com"
+     action:
+       name: "move"
+       dest-mailbox: "INBOX.PyATL.{{ date.year }}"
+
+will extract the year value from the date header of the message and
+insert it into the destination mailbox path.
+
+Header names are always all lower case and ``-`` is replaced by
+``_``.
+
+.. _jinja2: https://jinja.palletsprojects.com/en/2.11.x/
+
 Different IMAP servers may use different naming conventions for
 mailbox hierarchies. Use the ``--list-mailboxes`` option to the
 command line program to print a list of all of the mailboxes known to
@@ -318,6 +337,11 @@ header for each message. Messages to the
      action:
        name: sort
        dest-mailbox-base: "INBOX.ML."
+
+The ``dest-mailbox-base`` may include jinja2 template instructions,
+which are evaluated before the suffix is added to the base. Refer to
+the description of the ``move`` action for more details about template
+evaluation.
 
 Sort Mailing List Action
 ------------------------

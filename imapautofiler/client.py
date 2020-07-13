@@ -137,6 +137,7 @@ class IMAPClient(Client):
         username = cfg['server']['username']
         password = secrets.get_password(cfg)
         self._conn.login(username, password)
+        self._mbox_names = None
 
     def list_mailboxes(self):
         "Return a list of folder names."
@@ -155,7 +156,16 @@ class IMAPClient(Client):
             message = email_parser.close()
             yield (msg_id, message)
 
+    def _ensure_mailbox(self, name):
+        if self._mbox_names is None:
+            self._mbox_names = set(self.list_mailboxes())
+        if name not in self._mbox_names:
+            LOG.debug('creating mailbox %s', name)
+            self._conn.create_folder(name)
+            self._mbox_names.add(name)
+
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
+        self._ensure_mailbox(dest_mailbox)
         self._conn.copy([message_id], dest_mailbox)
 
     def delete_message(self, src_mailbox, message_id, message):
@@ -178,12 +188,13 @@ class MaildirClient(Client):
         super().__init__(cfg)
         self._root = os.path.expanduser(cfg['maildir'])
         LOG.debug('maildir: %s', self._root)
+        self._mbox_names = None
 
     @contextlib.contextmanager
     def _locked(self, mailbox_name):
         path = os.path.join(self._root, mailbox_name)
         LOG.debug('locking %s', path)
-        box = mailbox.Maildir(path)
+        box = mailbox.Maildir(path, create=True)
         box.lock()
         try:
             yield box

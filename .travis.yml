@@ -15,6 +15,7 @@ dist: xenial
 python:
   - "3.6"
   - "3.7"
+  - "3.8"
   - "nightly"
 
 # Test the nightly build of cpython, but ignore any failures.

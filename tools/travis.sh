@@ -21,9 +21,9 @@ case "$BUILD" in
     linter)
         flake8;;
     *)
-        pytest -v \
-               --cov=imapautofiler \
-               --cov-report term-missing \
-               --cov-config $rootdir/.coveragerc \
-               $@;;
+        pytest \
+            --cov=imapautofiler \
+            --cov-report term-missing \
+            --cov-config $rootdir/.coveragerc \
+            $@;;
 esac

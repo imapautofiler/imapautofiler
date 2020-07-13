@@ -53,12 +53,26 @@ class TestFactory(unittest.TestCase):
 
 class TestMove(base.TestCase):
 
-    def test_create(self):
+    def test_static_mailbox_name(self):
         m = actions.Move(
             {'name': 'move', 'dest-mailbox': 'msg-goes-here'},
             {},
         )
-        self.assertEqual('msg-goes-here', m._dest_mailbox)
+        self.assertEqual(
+            'msg-goes-here',
+            m._get_dest_mailbox('id-here', self.without_offset_msg),
+        )
+
+    def test_parameterized_mailbox_name(self):
+        m = actions.Move(
+            {'name': 'move', 'dest-mailbox': 'archive.{{ date.year }}'},
+            {},
+        )
+        dest_mailbox = m._get_dest_mailbox('id-here', self.without_offset_msg)
+        self.assertEqual(
+            'archive.2000',
+            dest_mailbox,
+        )
 
     def test_invoke(self):
         m = actions.Move(
@@ -154,6 +168,19 @@ class TestSort(base.TestCase):
         dest = m._get_dest_mailbox('id-here', self.msg)
         self.assertEqual(
             'lists-go-under-here.recipient1@example.com',
+            dest,
+        )
+
+    def test_get_dest_mailbox_template(self):
+        m = actions.Sort(
+            {'name': 'sort',
+             'dest-mailbox-base': 'lists-go-under-here.{{ date.year }}.',
+             'dest-mailbox-regex': r'(.*)'},
+            {},
+        )
+        dest = m._get_dest_mailbox('id-here', self.without_offset_msg)
+        self.assertEqual(
+            'lists-go-under-here.2000.recipient1@example.com',
             dest,
         )
 
