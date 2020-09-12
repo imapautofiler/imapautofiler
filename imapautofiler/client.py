@@ -19,7 +19,6 @@ import email.parser
 import logging
 import mailbox
 import os
-import ssl
 
 import imapclient
 
@@ -121,11 +120,9 @@ class IMAPClient(Client):
         super().__init__(cfg)
 
         # Use default client behavior if ca_file not provided.
-        context = None
+        context = imapclient.create_default_context()
         if 'ca_file' in cfg['server']:
-            context = ssl.create_default_context(
-                cafile=cfg['server']['ca_file']
-            )
+            context.cafile = cfg['server']['ca_file']
 
         self._conn = imapclient.IMAPClient(
             cfg['server']['hostname'],
