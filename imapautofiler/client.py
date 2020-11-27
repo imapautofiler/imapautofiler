@@ -23,6 +23,7 @@ import os
 import imapclient
 
 from . import secrets
+from .config import tobool
 
 LOG = logging.getLogger('imapautofiler.client')
 
@@ -123,6 +124,9 @@ class IMAPClient(Client):
         context = imapclient.create_default_context()
         if 'ca_file' in cfg['server']:
             context.cafile = cfg['server']['ca_file']
+
+        if 'check_hostname' in cfg['server']:
+            context.check_hostname = tobool(cfg['server']['check_hostname'])
 
         self._conn = imapclient.IMAPClient(
             cfg['server']['hostname'],
