@@ -32,3 +32,13 @@ def get_config(filename):
     LOG.debug('loading config from %s', filename)
     with open(filename, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
+
+
+def tobool(value):
+    """Convert config option value to boolean."""
+    if isinstance(value, bool):
+        return value
+
+    return (
+        str(value).lower() in ('y', 'yes', 't', 'true', 'on', 'enabled', '1')
+    )

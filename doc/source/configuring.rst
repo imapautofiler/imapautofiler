@@ -65,6 +65,30 @@ This is helpful if your company uses custom ports and self issued certs.
     port: 1234
     ca_file: path/to/ca_file.pem
 
+Sometimes servers use an SSL/TLS certificate with a common name, which does not
+match the hostname you are connecting to. Normally, when encountering this
+situation, ``imapautofiler`` will abort the connection with an error:
+
+.. code-block:: console
+
+    imapautofiler: error: certificate error for imap.example.com: hostname 'imap.example.com' doesn't match 'bogus.example.com'
+
+You can disable hostname checking for SSL/TLS certs by setting the
+``check_hostname`` option to a false value (any value other than ``y``,
+``yes``, ``t``, ``true``, ``on``, ``enabled``, or ``1`` (case-insensitive)
+will be regarded as false. The default is true).
+
+.. code-block:: yaml
+
+  server:
+    hostname: imap.example.com
+    username: my-user@example.com
+    check_hostname: false
+
+.. warning::
+    **Use at your own risk!** Disabling hostname checking is dangerous and
+    makes the connection vulnerable to man-in-the-middle attacks. You should
+    preferably ask the server operator to install a proper certificate instead.
 
 Maildir Location
 ================
