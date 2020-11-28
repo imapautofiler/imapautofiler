@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add ``check_hostname`` configuration option to allow connection to
+    sites where the hostname does not match the value in the SSL/TLS
+    certificate. See :ref:`config-server-connection` for details.

@@ -6,6 +6,8 @@ The application is configured through a YAML file. The default file,
 ``~/.imapautofiler.yml``, is read if no other file is specified on the
 command line.
 
+.. _config-server-connection:
+
 Server Connection
 =================
 
