@@ -411,6 +411,8 @@ regular expression ``notify-.*@disqus.net`` to the trash mailbox.
      action:
        name: trash
 
+.. _config-delete-action:
+
 Delete Action
 -------------
 
@@ -427,6 +429,65 @@ regular expression ``notify-.*@disqus.net``.
          regex: "notify-.*@disqus.net"
      action:
        name: delete
+
+Flag Action
+-----------
+
+The ``flag`` action can set the flags of a mesage or add and remove flags.
+Message flags are an IMAP feature, which allows to mark messages as seen (i.e.
+read), answered, flagged (i.e. urgent/special attention) or as a draft or
+deleted or to add keywords to it. Flags are not supported by Maildir mailboxes
+and the ``flag`` action has no effect, if used in this context.
+
+IMAP defines a set of *system flags*, which start with a backslash. You can use
+one of the following constants to refer to these flags::
+
+    ANSWERED = '\Answered'
+    DELETED = '\Deleted'
+    DRAFT = '\Draft'
+    FLAGGED = '\Flagged'
+    SEEN = '\Seen'
+
+IMAP servers may support other system flags or keywords (i.e. flags not starting
+with a backslash). See `RFC-2060`_ for more information on flags.
+
+The action can replace the message's flags using the ``set`` entry in the action
+settings. The entry value can either be a single flag or a list of flags.
+
+The following example would set the ``\Flagged`` and ``\Seen`` flags on the
+message and remove all other flags.:
+
+.. code-block:: yaml
+
+    action:
+      name: flag
+      set:
+      - FLAGGED
+      - SEEN
+
+Alternatively, flags can be added using the ``add`` entry or removed using the
+``remove`` entry. The following example would add the ``\Flagged`` flag and
+remove the ``\Seen`` flag from the message but leave all other existing flags
+in place:
+
+.. code-block:: yaml
+
+    action:
+        name: flag
+        add: FLAGGED
+        remove: SEEN
+
+It is an error to use a ``set`` entry together with an ``add`` or a ``remove``
+entry in the same ``flag`` action. If both ``add`` and ``remove`` entries are
+present, the latter takes precedence, i.e. if the same flag is present in
+both entry values, it is removed from the message.
+
+.. warning::
+    Setting or adding the ``DELETED`` flag on a message in an IMAP mailbox
+    is equivalent to the :ref:`config-delete-action`, i.e. the message is
+    permanently removed when the mailbox is expunged.
+
+.. _rfc-2060: https://tools.ietf.org/html/rfc2060#section-2.3.2
 
 Complete example configuration file
 ===================================
