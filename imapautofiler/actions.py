@@ -299,6 +299,115 @@ class Delete(Action):
         )
 
 
+class Flag(Action):
+    r"""Set, add or remove one or more message flags.
+
+    The action is indicated with the name ``flag``.
+
+    The action expects either a "set" or an "add" and / or a "remove" entry,
+    which specify the flag(s) to set or add and / or remove. The entry value
+    can either be a single flag or a list of flags. IMAP defines several
+    *system flags*, which start with a backslash, e.g. ``\Seen``. You can use
+    one of the following constants to refer to these system flags::
+
+        ANSWERED = r'\Answered'
+        DELETED = r'\Deleted'
+        DRAFT = r'\Draft'
+        FLAGGED = r'\Flagged'
+        SEEN = r'\Seen'
+
+    IMAP servers may support other system flags or keywords (i.e. flags not
+    starting with a backslash). See RFC-2060 for more information on flags.
+
+    Examples::
+
+
+        action:
+          name: flag
+          set:
+          - FLAGGED
+          - SEEN
+
+    This would set the ``\Flagged`` and ``\Seen`` flags on the message and
+    remove all other flags.
+
+    And:
+
+        action:
+            name: flag
+            add: FLAGGED
+            remove: SEEN
+
+    This would add the ``\Flagged`` flag and remove the ``\Seen`` flag from
+    the message but leave all other existing flags in place.
+
+    """
+
+    NAME = 'flag'
+    _log = logging.getLogger(NAME)
+    _system_flags = {
+        'ANSWERED': r'\Answered',
+        'DELETED': r'\Deleted',
+        'DRAFT': r'\Draft',
+        'FLAGGED': r'\Flagged',
+        'SEEN': r'\Seen',
+    }
+
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
+        self._set = self._get_flags('set')
+        self._add = self._get_flags('add')
+        self._remove = self._get_flags('remove')
+
+        if self._set and (self._add or self._remove):
+            raise ValueError(
+                'Action data must have either a "set" entry or an "add" and / '
+                'or a "remove" entry but not both for action {}'.format(
+                    action_data)
+            )
+
+        if not self._set and not (self._add or self._remove):
+            raise ValueError(
+                'Action data must have a "set", "add" or "remove" entry for '
+                'action {}'.format(
+                    action_data)
+            )
+
+    def _get_flags(self, kind):
+        flags = self._data.get(kind, [])
+
+        if not isinstance(flags, list):
+            flags = [flags]
+
+        return {self._system_flags.get(f, str(f)) for f in flags if f}
+
+    def report(self, conn, mailbox_name, message_id, message):
+        if self._set:
+            self._log.info('%s (%s) set (%s)', message_id,
+                           i18n.get_header_value(message, 'subject'),
+                           ', '.join(self._set))
+        else:
+            if self._add:
+                self._log.info('%s (%s) add (%s)', message_id,
+                               i18n.get_header_value(message, 'subject'),
+                               ', '.join(self._add))
+            if self._remove:
+                self._log.info('%s (%s) remove (%s)', message_id,
+                               i18n.get_header_value(message, 'subject'),
+                               ', '.join(self._remove))
+
+    def invoke(self, conn, mailbox_name, message_id, message):
+        if self._set:
+            conn.set_flags(mailbox_name, message_id, message, list(self._set))
+        else:
+            if self._add:
+                conn.add_flags(mailbox_name, message_id, message,
+                               list(self._add))
+            if self._remove:
+                conn.remove_flags(mailbox_name, message_id, message,
+                                  list(self._remove))
+
+
 _lookup_table = lookup.make_lookup_table(Action, 'NAME')
 
 
