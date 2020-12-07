@@ -25,6 +25,7 @@ class TestRegisteredFactories(object):
         'sort-mailing-list',
         'trash',
         'delete',
+        'flag',
     ]
     scenarios = [
         (name, {'name': name})
@@ -326,3 +327,169 @@ class TestDelete(base.TestCase):
         m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
         conn.delete_message.assert_called_once_with(
             'src-mailbox', 'id-here', self.msg)
+
+
+class TestFlag(base.TestCase):
+
+    def test_no_command(self):
+        self.assertRaises(ValueError, actions.Flag, {'name': 'flag'}, {})
+
+    def test_add_flags_single(self):
+        m = actions.Flag(
+            {'name': 'flag', 'add': 'FLAGGED'},
+            {},
+        )
+        self.assertEqual({'\\Flagged'}, m._add)
+        self.assertEqual(set(), m._set)
+        self.assertEqual(set(), m._remove)
+
+    def test_add_flags_list(self):
+        m = actions.Flag(
+            {'name': 'flag', 'add': ['FLAGGED', 'DRAFT', 'foo']},
+            {},
+        )
+        self.assertEqual({'\\Flagged', '\\Draft', 'foo'}, m._add)
+        self.assertEqual(set(), m._set)
+        self.assertEqual(set(), m._remove)
+
+    def test_add_flags_empty(self):
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'add': ''}, {})
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'add': []}, {})
+
+    def test_remove_flags_single(self):
+        m = actions.Flag(
+            {'name': 'flag', 'remove': 'FLAGGED'},
+            {},
+        )
+        self.assertEqual({'\\Flagged'}, m._remove)
+        self.assertEqual(set(), m._add)
+        self.assertEqual(set(), m._set)
+
+    def test_remove_flags_list(self):
+        m = actions.Flag(
+            {'name': 'flag', 'remove': ['FLAGGED', 'DRAFT', 'foo']},
+            {},
+        )
+        self.assertEqual({'\\Flagged', '\\Draft', 'foo'}, m._remove)
+        self.assertEqual(set(), m._add)
+        self.assertEqual(set(), m._set)
+
+    def test_remove_flags_empty(self):
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'remove': ''}, {})
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'remove': []}, {})
+
+    def test_add_and_remove_flags(self):
+        m = actions.Flag(
+            {'name': 'flag', 'add': 'SEEN', 'remove': ['FLAGGED', 'DRAFT']},
+            {},
+        )
+        self.assertEqual({'\\Seen'}, m._add)
+        self.assertEqual({'\\Flagged', '\\Draft'}, m._remove)
+        self.assertEqual(set(), m._set)
+
+    def test_set_flags_single(self):
+        m = actions.Flag(
+            {'name': 'flag', 'set': 'FLAGGED'},
+            {},
+        )
+        self.assertEqual({'\\Flagged'}, m._set)
+        self.assertEqual(set(), m._add)
+        self.assertEqual(set(), m._remove)
+
+    def test_set_flags_list(self):
+        m = actions.Flag(
+            {'name': 'flag', 'set': ['FLAGGED', 'DRAFT', 'foo']},
+            {},
+        )
+        self.assertEqual({'\\Flagged', '\\Draft', 'foo'}, m._set)
+        self.assertEqual(set(), m._add)
+        self.assertEqual(set(), m._remove)
+
+    def test_set_flags_empty(self):
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'set': ''}, {})
+        self.assertRaises(ValueError,
+                          actions.Flag, {'name': 'flag', 'set': []}, {})
+
+    def test_set_and_add_flags(self):
+        self.assertRaises(
+            ValueError,
+            actions.Flag,
+            {'name': 'flag', 'set': 'FLAGGED', 'add': 'DRAFT'},
+            {}
+        )
+
+        m = actions.Flag(
+            {'name': 'flag', 'set': ['FLAGGED'], 'add': ''},
+            {},
+        )
+        self.assertEqual({'\\Flagged'}, m._set)
+        self.assertEqual(set(), m._add)
+
+    def test_set_and_remove_flags(self):
+        self.assertRaises(
+            ValueError,
+            actions.Flag,
+            {'name': 'flag', 'set': 'FLAGGED', 'remove': 'DRAFT'},
+            {}
+        )
+
+        m = actions.Flag(
+            {'name': 'flag', 'set': ['FLAGGED'], 'remove': ''},
+            {},
+        )
+        self.assertEqual({'\\Flagged'}, m._set)
+        self.assertEqual(set(), m._remove)
+
+    def test_invoke_add(self):
+        m = actions.Flag(
+            {'name': 'flag', 'add': 'FLAGGED'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.add_flags.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, ['\\Flagged'])
+        conn.set_flags.not_called()
+        conn.remove_flags.not_called()
+
+    def test_invoke_remove(self):
+        m = actions.Flag(
+            {'name': 'flag', 'remove': 'FLAGGED'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.remove_flags.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, ['\\Flagged'])
+        conn.set_flags.not_called()
+        conn.add_flags.not_called()
+
+    def test_invoke_set(self):
+        m = actions.Flag(
+            {'name': 'flag', 'set': 'FLAGGED'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_flags.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, ['\\Flagged'])
+        conn.add_flags.not_called()
+        conn.remove_flags.not_called()
+
+    def test_invoke_add_and_remove(self):
+        m = actions.Flag(
+            {'name': 'flag', 'add': 'FLAGGED', 'remove': ['DRAFT']},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.add_flags.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, ['\\Flagged'])
+        conn.remove_flags.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, ['\\Draft'])
+        conn.set_flags.not_called()
