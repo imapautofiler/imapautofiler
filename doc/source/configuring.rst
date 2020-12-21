@@ -411,6 +411,8 @@ regular expression ``notify-.*@disqus.net`` to the trash mailbox.
      action:
        name: trash
 
+.. _config-delete-action:
+
 Delete Action
 -------------
 
@@ -427,6 +429,40 @@ regular expression ``notify-.*@disqus.net``.
          regex: "notify-.*@disqus.net"
      action:
        name: delete
+
+Flag and Unflag
+---------------
+
+The ``flag`` action sets the flag of a message.
+
+.. code-block:: yaml
+
+    action:
+      name: flag
+
+The ``unflag`` action unsets the flag of a message.
+
+.. code-block:: yaml
+
+    action:
+      name: unflag
+
+Read and Unread
+---------------
+
+The ``mark_read`` action sets the message as seen or read.
+
+.. code-block:: yaml
+
+    action:
+      name: mark_read
+
+The ``mark_unread`` action sets the message as unseen or unread.
+
+.. code-block:: yaml
+
+    action:
+      name: mark_unread
 
 Complete example configuration file
 ===================================

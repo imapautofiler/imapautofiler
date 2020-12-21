@@ -25,6 +25,8 @@ class TestRegisteredFactories(object):
         'sort-mailing-list',
         'trash',
         'delete',
+        'flag',
+        'unflag',
     ]
     scenarios = [
         (name, {'name': name})
@@ -326,3 +328,49 @@ class TestDelete(base.TestCase):
         m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
         conn.delete_message.assert_called_once_with(
             'src-mailbox', 'id-here', self.msg)
+
+
+class TestFlag(base.TestCase):
+
+    def test_flag(self):
+        m = actions.Flag(
+            {'name': 'flag'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_flagged.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, True)
+
+    def test_unflag(self):
+        m = actions.Unflag(
+            {'name': 'unflag'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_flagged.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, False)
+
+
+class TestMarkRead(base.TestCase):
+
+    def test_mark_read(self):
+        m = actions.MarkRead(
+            {'name': 'mark_read'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_read.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, True)
+
+    def test_mark_unread(self):
+        m = actions.MarkUnread(
+            {'name': 'mark_unread'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_read.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, False)

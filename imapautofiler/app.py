@@ -18,10 +18,7 @@ import imaplib
 import logging
 import sys
 
-from imapautofiler import actions
-from imapautofiler import client
-from imapautofiler import config
-from imapautofiler import rules
+from imapautofiler import actions, client, config, rules
 
 LOG = logging.getLogger('imapautofiler')
 
@@ -86,6 +83,8 @@ def process_rules(cfg, debug, conn, dry_run=False):
                                   action.NAME,
                                   message['subject'], err)
                         num_errors += 1
+                        if debug:
+                            raise
                     else:
                         num_processed += 1
                     # At this point we've processed the message

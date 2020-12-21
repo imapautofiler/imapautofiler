@@ -54,6 +54,38 @@ class Client(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        """Manage the "flagged" flag for the message.
+
+        If is_flagged is True, ensure the message is
+        flagged. Otherwise, ensure it is not.
+
+        :param src_mailbox: name of the source mailbox
+        :type src_mailbox: str
+        :param message_id: ID of the message to copy
+        :type message_id: str
+        :param is_flagged: whether to flag the message
+        :type flags: bool
+
+        """
+
+    @abc.abstractmethod
+    def set_read(self, src_mailbox, message_id, message, is_read):
+        """Manage the "read" flag for the message.
+
+        If is_read is True, ensure the message is
+        read. Otherwise, ensure it is not.
+
+        :param src_mailbox: name of the source mailbox
+        :type src_mailbox: str
+        :param message_id: ID of the message to copy
+        :type message_id: str
+        :param is_read: whether the message should be marked read
+        :type flags: bool
+
+        """
+
+    @abc.abstractmethod
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         """Create a copy of the message in the destination mailbox.
 
@@ -165,6 +197,18 @@ class IMAPClient(Client):
             self._conn.create_folder(name)
             self._mbox_names.add(name)
 
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        if is_flagged:
+            self._conn.add_flags([message_id], [imapclient.FLAGGED])
+        else:
+            self._conn.remove_flags([message_id], [imapclient.FLAGGED])
+
+    def set_read(self, src_mailbox, message_id, message, is_read):
+        if is_read:
+            self._conn.add_flags([message_id], [imapclient.SEEN])
+        else:
+            self._conn.remove_flags([message_id], [imapclient.SEEN])
+
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         self._ensure_mailbox(dest_mailbox)
         self._conn.copy([message_id], dest_mailbox)
@@ -212,6 +256,24 @@ class MaildirClient(Client):
         with self._locked(mailbox_name) as box:
             results = list(box.iteritems())
         return results
+
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        with self._locked(src_mailbox) as box:
+            message = box[message_id]
+            if is_flagged:
+                message.add_flag('F')
+            else:
+                message.remove_flag('F')
+            box[message_id] = message
+
+    def set_read(self, src_mailbox, message_id, message, is_flagged):
+        with self._locked(src_mailbox) as box:
+            message = box[message_id]
+            if is_flagged:
+                message.add_flag('R')
+            else:
+                message.remove_flag('R')
+            box[message_id] = message
 
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         with self._locked(dest_mailbox) as box:
