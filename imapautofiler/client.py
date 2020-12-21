@@ -236,10 +236,13 @@ class MaildirClient(Client):
         return results
 
     def set_flagged(self, src_mailbox, message_id, message, is_flagged):
-        if is_flagged:
-            self._conn.add_flag([message_id], 'F')
-        else:
-            self._conn.remove_flag([message_id], 'F')
+        with self._locked(src_mailbox) as box:
+            message = box[message_id]
+            if is_flagged:
+                message.add_flag('F')
+            else:
+                message.remove_flag('F')
+            box[message_id] = message
 
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         with self._locked(dest_mailbox) as box:
