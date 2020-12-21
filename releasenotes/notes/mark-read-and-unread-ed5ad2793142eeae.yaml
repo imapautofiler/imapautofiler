@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Add `mark_read` and `mark_unread` actions. See :ref:`config-mark-read-action` for details.

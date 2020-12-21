@@ -430,6 +430,9 @@ regular expression ``notify-.*@disqus.net``.
      action:
        name: delete
 
+.. _config-flag-action:
+.. _config-unflag-action:
+
 Flag and Unflag
 ---------------
 
@@ -446,6 +449,9 @@ The ``unflag`` action unsets the flag of a message.
 
     action:
       name: unflag
+
+.. _config-mark-read-action:
+.. _config-mark-unread-action:
 
 Read and Unread
 ---------------
