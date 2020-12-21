@@ -340,6 +340,48 @@ class Unflag(Action):
         conn.set_flagged(mailbox_name, message_id, message, False)
 
 
+class MarkRead(Action):
+    r"""Mark the message as read
+
+    The action is indicated with the name ``mark_read``.
+
+    """
+
+    NAME = 'mark_read'
+    _log = logging.getLogger(NAME)
+
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
+
+    def report(self, conn, mailbox_name, message_id, message):
+        self._log.info('%s (%s)', message_id,
+                       i18n.get_header_value(message, 'subject'))
+
+    def invoke(self, conn, mailbox_name, message_id, message):
+        conn.set_read(mailbox_name, message_id, message, True)
+
+
+class MarkUnread(Action):
+    r"""Mark the message as unread
+
+    The action is indicated with the name ``mark_unread``.
+
+    """
+
+    NAME = 'mark_unread'
+    _log = logging.getLogger(NAME)
+
+    def __init__(self, action_data, cfg):
+        super().__init__(action_data, cfg)
+
+    def report(self, conn, mailbox_name, message_id, message):
+        self._log.info('%s (%s)', message_id,
+                       i18n.get_header_value(message, 'subject'))
+
+    def invoke(self, conn, mailbox_name, message_id, message):
+        conn.set_read(mailbox_name, message_id, message, False)
+
+
 _lookup_table = lookup.make_lookup_table(Action, 'NAME')
 
 

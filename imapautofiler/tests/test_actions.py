@@ -351,3 +351,26 @@ class TestFlag(base.TestCase):
         m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
         conn.set_flagged.assert_called_once_with(
             'src-mailbox', 'id-here', self.msg, False)
+
+
+class TestMarkRead(base.TestCase):
+
+    def test_mark_read(self):
+        m = actions.MarkRead(
+            {'name': 'mark_read'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_read.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, True)
+
+    def test_mark_unread(self):
+        m = actions.MarkUnread(
+            {'name': 'mark_unread'},
+            {},
+        )
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.set_read.assert_called_once_with(
+            'src-mailbox', 'id-here', self.msg, False)
