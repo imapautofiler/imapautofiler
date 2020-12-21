@@ -312,7 +312,7 @@ class Flag(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s) flagging', message_id,
+        self._log.info('%s (%s)', message_id,
                        i18n.get_header_value(message, 'subject'))
 
     def invoke(self, conn, mailbox_name, message_id, message):
@@ -333,7 +333,7 @@ class Unflag(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s) flagging', message_id,
+        self._log.info('%s (%s)', message_id,
                        i18n.get_header_value(message, 'subject'))
 
     def invoke(self, conn, mailbox_name, message_id, message):
