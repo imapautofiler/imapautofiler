@@ -450,6 +450,9 @@ The ``unflag`` action unsets the flag of a message.
     action:
       name: unflag
 
+.. _config-mark-read-action:
+.. _config-mark-unread-action:
+
 Read and Unread
 ---------------
 
