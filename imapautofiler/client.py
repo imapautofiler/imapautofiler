@@ -54,41 +54,18 @@ class Client(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def add_flags(self, src_mailbox, message_id, message, flags):
-        """Add flags to the message.
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        """Manage the "flagged" flag for the message.
+
+        If is_flagged is True, ensure the message is
+        flagged. Otherwise, ensure it is not.
 
         :param src_mailbox: name of the source mailbox
         :type src_mailbox: str
         :param message_id: ID of the message to copy
         :type message_id: str
-        :param flags: a single mesage flag or a sequence of flags
-        :type flags: str, list[str]
-
-        """
-
-    @abc.abstractmethod
-    def remove_flags(self, src_mailbox, message_id, message, flags):
-        """Remove flags from the message.
-
-        :param src_mailbox: name of the source mailbox
-        :type src_mailbox: str
-        :param message_id: ID of the message to copy
-        :type message_id: str
-        :param flags: a single mesage flag or a sequence of flags
-        :type flags: str, list[str]
-
-        """
-
-    @abc.abstractmethod
-    def set_flags(self, src_mailbox, message_id, message, flags):
-        """Set flags on the message.
-
-        :param src_mailbox: name of the source mailbox
-        :type src_mailbox: str
-        :param message_id: ID of the message to copy
-        :type message_id: str
-        :param flags: a single mesage flag or a sequence of flags
-        :type flags: str, list[str]
+        :param is_flagged: whether to flag the message
+        :type flags: bool
 
         """
 
@@ -204,14 +181,11 @@ class IMAPClient(Client):
             self._conn.create_folder(name)
             self._mbox_names.add(name)
 
-    def add_flags(self, src_mailbox, message_id, message, flags):
-        return self._conn.add_flags([message_id], flags)
-
-    def remove_flags(self, src_mailbox, message_id, message, flags):
-        return self._conn.remove_flags([message_id], flags)
-
-    def set_flags(self, src_mailbox, message_id, message, flags):
-        return self._conn.set_flags([message_id], flags)
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        if is_flagged:
+            self._conn.add_flags([message_id], [imapclient.FLAGGED])
+        else:
+            self._conn.remove_flags([message_id], [imapclient.FLAGGED])
 
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         self._ensure_mailbox(dest_mailbox)
@@ -261,14 +235,11 @@ class MaildirClient(Client):
             results = list(box.iteritems())
         return results
 
-    def add_flags(self, src_mailbox, message_id, message, flags):
-        pass
-
-    def remove_flags(self, src_mailbox, message_id, message, flags):
-        pass
-
-    def set_flags(self, src_mailbox, message_id, message, flags):
-        pass
+    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+        if is_flagged:
+            self._conn.add_flag([message_id], 'F')
+        else:
+            self._conn.remove_flag([message_id], 'F')
 
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
         with self._locked(dest_mailbox) as box:
