@@ -430,6 +430,9 @@ regular expression ``notify-.*@disqus.net``.
      action:
        name: delete
 
+.. _config-flag-action:
+.. _config-unflag-action:
+
 Flag and Unflag
 ---------------
 

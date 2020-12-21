@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Add `flag` and `unflag` actions. See :ref:`config-flag-action` for details.
