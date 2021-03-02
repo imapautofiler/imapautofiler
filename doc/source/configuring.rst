@@ -92,6 +92,21 @@ will be regarded as false. The default is true).
     makes the connection vulnerable to man-in-the-middle attacks. You should
     preferably ask the server operator to install a proper certificate instead.
 
+You can disable SSL/TLS connection by setting the ``ssl`` option to a false
+value (any value other than ``y``,``yes``, ``t``, ``true``, ``on``, ``enabled``,
+or ``1`` (case-insensitive) will be regarded as false. The default is true).
+
+.. code-block:: yaml
+
+  server:
+    hostname: imap.example.com
+    username: my-user@example.com
+    ssl: false
+
+.. warning::
+    **Use at your own risk!** Disabling SSL/TLS connection is dangerous. You should
+    preferably ask the server operator to install a proper certificate instead.
+
 Maildir Location
 ================
 
