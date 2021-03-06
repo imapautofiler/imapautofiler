@@ -13,10 +13,10 @@
 import abc
 import logging
 import re
-from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta, timezone
-from imapautofiler import i18n
-from imapautofiler import lookup
+from email.utils import parsedate_to_datetime
+
+from imapautofiler import i18n, lookup
 
 
 class Rule(metaclass=abc.ABCMeta):
@@ -179,7 +179,7 @@ class _HeaderMatcher(Rule):
 
     @abc.abstractmethod
     def _check_rule(self, header_value):
-        pass
+        "run the rule-specific matching check"
 
     def check(self, message):
         header_value = i18n.get_header_value(message, self._header_name)

@@ -52,6 +52,10 @@ class TestFactory(unittest.TestCase):
             rules.factory({'or': {}}, {})
             lt['or'].assert_called_with({'or': {}}, {})
 
+    def test_ignore_action(self):
+        self.assertRaises(ValueError, rules.factory,
+                          {'action': {}}, {})
+
 
 class TestOr(base.TestCase):
 
@@ -411,12 +415,28 @@ class TestHeaders(base.TestCase):
                  'substring': 'recipient1@example.com'},
                 {'name': 'cc',
                  'substring': 'recipient1@example.com'},
+                {'name': 'to',
+                 'regex': 'recipient.*@example.com',
+                 },
+                {'name': 'to',
+                 'value': 'recipient1@example.com',
+                 },
             ],
         }
         r = rules.Headers(rule_def, {})
         self.assertIsInstance(r._matchers[0], rules.HeaderSubString)
         self.assertIsInstance(r._matchers[1], rules.HeaderSubString)
-        self.assertEqual(len(r._matchers), 2)
+        self.assertIsInstance(r._matchers[2], rules.HeaderRegex)
+        self.assertIsInstance(r._matchers[3], rules.HeaderExactValue)
+        self.assertEqual(len(r._matchers), 4)
+
+    def test_create_unknown_type(self):
+        rule_def = {
+            'headers': [
+                {'name': 'to'},
+            ],
+        }
+        self.assertRaises(ValueError, rules.Headers, rule_def, {})
 
     def test_check_no_short_circuit(self):
         rule_def = {'or': {'rules': []}}
