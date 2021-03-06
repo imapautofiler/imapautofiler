@@ -1,5 +1,7 @@
 AUTHORS
 ChangeLog
+RELEASENOTES.rst
+releasenotes/notes/reno.cache
 *~
 *.swp
 *.pyc
