@@ -160,10 +160,14 @@ class IMAPClient(Client):
         if 'check_hostname' in cfg['server']:
             context.check_hostname = tobool(cfg['server']['check_hostname'])
 
+        ssl = True
+        if 'ssl' in cfg['server']:
+            ssl = tobool(cfg['server']['ssl'])
+
         self._conn = imapclient.IMAPClient(
             cfg['server']['hostname'],
             use_uid=True,
-            ssl=True,
+            ssl=ssl,
             port=cfg['server'].get('port'),
             ssl_context=context,
         )
