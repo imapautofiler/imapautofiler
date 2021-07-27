@@ -36,8 +36,21 @@ will be stored in your operating system's secure keyring and reused when running
 the app. Refer to the keyring_ documentation for more details about setting up
 secure password storage.
 
-If you do not want to use the keyring, the connection section can optionally
-include a password.
+imapautofiler also supports using an environment variable to retrieve password for 
+the connection. This can be useful if imapautofiler run in a docker container.
+
+.. code-block:: yaml
+
+  server:
+    hostname: example.com
+    username: my-user@example.com
+    use_env_variable: IMAP_PASSWORD
+
+In this scenario, you need to set a environment variable named `IMAP_PASSWORD` with
+your password string.
+
+If you do not want to use the keyring or environment variable, the connection
+section can optionally include a password.
 
 .. code-block:: yaml
 
