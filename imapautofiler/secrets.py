@@ -1,5 +1,6 @@
 import logging
 import getpass
+import os
 
 import keyring
 
@@ -12,6 +13,14 @@ class FixedPasswordSecret:
 
     def get_password(self):
         return self.password
+
+
+class EnvPasswordSecret:
+    def __init__(self, env_variable):
+        self.env_variable = env_variable
+
+    def get_password(self):
+        return os.environ[self.env_variable]
 
 
 class KeyringPasswordSecret:
@@ -66,6 +75,17 @@ def configure_providers(cfg):
             hostname=cfg['server']['hostname'],
             username=cfg['server']['username'],
         )
+
+    # Third, we will try for a env variable password if configured
+    try:
+        use_env_variable = cfg['server']['use_env_variable']
+    except KeyError:
+        use_env_variable = False
+
+    if use_env_variable:
+        LOG.debug("Password configured from ENV variable")
+        provider = EnvPasswordSecret(cfg['server']['use_env_variable'])
+        yield provider
 
     else:
         yield AskPassword(
