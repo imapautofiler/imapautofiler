@@ -16,7 +16,6 @@ import unittest.mock as mock
 from imapautofiler.client import IMAPClient
 from imapautofiler.config import get_config, tobool
 
-
 CONFIG = """\
 server:
     hostname: example.com
@@ -84,18 +83,18 @@ class TestConfig(BaseConfigTest):
 
 class TestServerConfig(BaseConfigTest):
     def test_imapclient_config(self):
-        context = mock.MagicMock()
-        with mock.patch('imapclient.create_default_context',
-                        return_value=context):
+        context = mock.Mock()
+        context_maker = mock.Mock(return_value=context)
+        with mock.patch('ssl.create_default_context',
+                        context_maker):
             with mock.patch('imapclient.IMAPClient') as clientclass:
-                conn = IMAPClient(self.cfg)
+                IMAPClient(self.cfg)
                 clientclass.assert_called_once_with(
                     'example.com',
                     use_uid=True,
                     ssl=True,
                     port=1234,
                     ssl_context=context)
-                conn._conn.login.assert_called_once_with('my-user@example.com',
-                                                         'super-secret')
-                self.assertEqual(context.cafile, 'path/to/ca_file.pem')
-                self.assertTrue(context.check_hostname)
+                context_maker.assert_called_once_with(
+                    cafile='path/to/ca_file.pem',
+                )
