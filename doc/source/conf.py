@@ -22,7 +22,6 @@
 # sys.path.insert(0, os.path.abspath('.'))
 import subprocess
 
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -34,7 +33,6 @@ import subprocess
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'reno.sphinxext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

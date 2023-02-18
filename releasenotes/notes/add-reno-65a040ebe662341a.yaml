@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Start using `reno <https://docs.openstack.org/reno/latest/>`_ for
-    managing release notes.
