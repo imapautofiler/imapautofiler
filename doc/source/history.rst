@@ -2,8 +2,14 @@
  History
 =========
 
-* set language to english for sphinx 5.0
-* add check-python-versions to pkglint
+1.13.0
+======
+
+- stop using reno for release notes
+- add python 3.11 support
+- modernize packaging
+- add testtools dependency to for tests
+- set language to english for sphinx 5.0
 
 1.12.0
 ======
