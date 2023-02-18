@@ -45,7 +45,6 @@ test = [
 ]
 docs = [
   "Sphinx",
-  "reno",
 ]
 
 [project.urls]

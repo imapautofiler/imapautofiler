@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    This release drops support for python 3.6 and 3.7.

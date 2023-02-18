@@ -1,7 +1,0 @@
----
-features:
-  - |
-    A configuration option has been added to disable the use of
-    SSL/TLS for servers that do not support it. The default is to
-    always use SSL/TLS. See :ref:`config-server-connection` for details.
-    Contributed by `Samuele Zanon <https://github.com/webs86>`__.

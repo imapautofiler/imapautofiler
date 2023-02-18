@@ -33,6 +33,9 @@ pull_request_rules:
         - "check-success=build (3.11)"
         - "-draft"
         - or:
+          - "check-success=history-update"
+          - "label=ci"
+        - or:
           - "approved-reviews-by=dhellmann"
           - "author=dhellmann"
     actions:
