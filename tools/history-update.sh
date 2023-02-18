@@ -4,13 +4,13 @@ set -x
 
 git remote -v
 
-git branch -a
+git log --name-only --pretty= "origin/master.." -- | cat -
 
 # We only look at the files that have changed in the current PR, to
 # avoid problems when the template is changed in a way that is
 # incompatible with existing documents.
 if git log --name-only --pretty= "origin/master.." -- \
-        | grep -q '^docs/source/history.rst$'; then
+        | grep -q '^doc/source/history.rst$'; then
     echo "Found a change to history file."
     exit 0
 fi
