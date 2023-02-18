@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imapautofiler"
+authors = [
+  {name = "Doug Hellmann", email = "doug@doughellmann.com"},
+]
+description = "Automatically file IMAP messages"
+readme = "README.rst"
+dynamic = ["version"]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Communications :: Email",
+]
+
+requires-python = ">=3.8"
+
+dependencies = [
+    "PyYAML>=3.11",
+    "imapclient>=2.2.0",
+    "keyring>=10.0.0",
+    "jinja2>=2.11.2",
+]
+
+[project.optional-dependencies]
+test = [
+  "coverage>=4.5.3",
+  "pytest>=4.4.1",
+  "pytest-cov>=2.6.1",
+  "fixtures",
+  "flake8",
+  "testtools",
+]
+docs = [
+  "Sphinx",
+  "reno",
+]
+
+[project.urls]
+homepage = "https://imapautofiler.readthedocs.io/en/latest/"
+repository = "https://github.com/imapautofiler/imapautofiler"
+
+[project.scripts]
+imapautofiler = "imapautofiler.app:main"
+
+# https://github.com/pypa/setuptools_scm/
+[tool.setuptools_scm]
+write_to = "imapautofiler/version.py"
+
+[tool.setuptools]
+# Be explicit to avoid an error because build finds cover,
+# releasenotes, and imapautofiler as potential packages.
+packages = [
+    "imapautofiler",
+]
