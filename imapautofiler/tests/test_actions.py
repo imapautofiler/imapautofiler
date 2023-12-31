@@ -315,6 +315,20 @@ class TestSortByYear(base.TestCase):
             'src-mailbox', 'archive-under-here/2023',
             'id-here', self.msg)
 
+    def test_invalid_date(self):
+        m = actions.SortByYear(
+            {'name': 'sort-by-year',
+             'dest-mailbox-base': 'archive-under-here/',
+             },
+            {},
+        )
+        self.msg['date'] = ''
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.move_message.assert_called_once_with(
+            'src-mailbox', 'archive-under-here/2023',
+            'id-here', self.msg)
+
 
 class TestTrash(base.TestCase):
 

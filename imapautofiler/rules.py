@@ -267,7 +267,16 @@ class TimeLimit(Rule):
         self._age = rule_data['time-limit']['age']
 
     def check(self, message):
-        date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
+        header_value = i18n.get_header_value(message, 'date')
+        try:
+            date = parsedate_to_datetime(header_value)
+        except (TypeError, ValueError) as err:
+            self._log.error(
+                'Failed to check date for %r: %s',
+                i18n.get_header_value(message, 'subject'),
+                err,
+            )
+            return False
 
         # RFC2822 dates ending with '-0000' create timezone naive datetimes
         # so we need to manually set their timezone so we can compare them

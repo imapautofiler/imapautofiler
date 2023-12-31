@@ -11,14 +11,14 @@
 #    under the License.
 
 import email.parser
+import logging
+import unittest
+from datetime import datetime, timedelta, timezone
 from email.header import Header
 from email.message import Message
 from email.utils import format_datetime
-import logging
-import unittest
 
 import fixtures
-from datetime import datetime, timezone, timedelta
 
 
 def construct_message(headers):
@@ -70,12 +70,18 @@ WITHOUT_OFFSET_MESSAGE.update({
     'Date': 'Thu, 07 Sep 2000 20:57:30 -0000',
 })
 
+WITHOUT_DATE_MESSAGE = MESSAGE.copy()
+WITHOUT_DATE_MESSAGE.update({
+    'Date': '',
+})
+
 
 class TestCase(unittest.TestCase):
     _msg = None
     _recent_msg = None
     _i18n_msg = None
     _without_offset_msg = None
+    _without_date_msg = None
 
     def setUp(self):
         super().setUp()
@@ -121,6 +127,14 @@ class TestCase(unittest.TestCase):
                 construct_message(WITHOUT_OFFSET_MESSAGE)
             )
         return self._without_offset_msg
+
+    @property
+    def without_date_msg(self):
+        if self._without_date_msg is None:
+            self._without_date_msg = email.parser.Parser().parsestr(
+                construct_message(WITHOUT_DATE_MESSAGE)
+            )
+        return self._without_date_msg
 
 
 def pytest_generate_tests(metafunc):

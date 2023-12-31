@@ -531,3 +531,7 @@ class TestTimeLimit(base.TestCase):
     def test_time_limit_expired_without_offset(self):
         r = rules.TimeLimit(self.get_def(), {})
         self.assertTrue(r.check(self.without_offset_msg))
+
+    def test_invalid_date(self):
+        r = rules.TimeLimit(self.get_def(), {})
+        self.assertFalse(r.check(self.without_date_msg))
