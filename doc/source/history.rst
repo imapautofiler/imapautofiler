@@ -6,6 +6,7 @@
 ======
 
 - Add :ref:`sort-by-year-action`.
+- Add Python 3.12 to set matrix.
 
 1.13.0
 ======
