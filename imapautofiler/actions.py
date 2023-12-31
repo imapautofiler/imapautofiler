@@ -251,6 +251,29 @@ class SortMailingList(Sort):
     _default_regex = r'<?([^.]+)\..*>?'
 
 
+class SortByYear(Sort):
+    r"""Move the message based on the year in the date header.
+
+    The action is indicated with the name ``sort-by-year``.
+
+    """
+
+    NAME = 'sort-by-year'
+    _log = logging.getLogger(NAME)
+    _default_header = 'date'
+
+    def _get_dest_mailbox(self, message_id, message):
+        header_value = i18n.get_header_value(message, 'date')
+        date = parsedate_to_datetime(header_value)
+        year = date.year
+        dest = self._dest_mailbox_base + str(year)
+        self._log.debug(
+            '%s "date" header %r gives year %r and destination %s',
+            message_id, header_value, year, dest,
+        )
+        return dest
+
+
 class Trash(Move):
     """Move the message to the trashcan.
 

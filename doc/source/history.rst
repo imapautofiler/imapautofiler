@@ -2,6 +2,11 @@
  History
 =========
 
+1.14.0
+======
+
+- Add :ref:`sort-by-year-action`.
+
 1.13.0
 ======
 

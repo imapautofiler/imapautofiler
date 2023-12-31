@@ -404,6 +404,26 @@ folders under ``INBOX.ML``.
        name: sort-mailing-list
        dest-mailbox-base: "INBOX.ML."
 
+.. _sort-by-year-action:
+
+Sort By Year Action
+-------------------
+
+The ``sort-by-year`` action works similarly to the ``sort`` action,
+but instead of extracting a pattern from an arbitrary header it parses
+the ``Date`` header and appends the year to the ``dest-mailbox-base``.
+
+The example below sorts messages to messages into separate year-based
+folders under ``INBOX.ML``.
+
+.. code-block:: yaml
+
+   - time-limit:
+       age: 30
+     action:
+       name: sort-mailing-list
+       dest-mailbox-base: "INBOX.ML."
+
 Trash Action
 ------------
 

@@ -290,6 +290,32 @@ class TestSortMailingList(base.TestCase):
             'id-here', self.msg)
 
 
+class TestSortByYear(base.TestCase):
+
+    def test_create(self):
+        m = actions.SortByYear(
+            {'name': 'sort-by-year',
+             'dest-mailbox-base': 'archive-under-here/'},
+            {},
+        )
+        self.assertEqual('archive-under-here/', m._dest_mailbox_base)
+        self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
+
+    def test_invoke(self):
+        m = actions.SortByYear(
+            {'name': 'sort-by-year',
+             'dest-mailbox-base': 'archive-under-here/',
+             },
+            {},
+        )
+        self.msg['date'] = 'Thu, 28 Dec 2023 13:47:53 -0600'
+        conn = mock.Mock()
+        m.invoke(conn, 'src-mailbox', 'id-here', self.msg)
+        conn.move_message.assert_called_once_with(
+            'src-mailbox', 'archive-under-here/2023',
+            'id-here', self.msg)
+
+
 class TestTrash(base.TestCase):
 
     def test_create(self):
