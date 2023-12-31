@@ -264,8 +264,16 @@ class SortByYear(Sort):
 
     def _get_dest_mailbox(self, message_id, message):
         header_value = i18n.get_header_value(message, 'date')
-        date = parsedate_to_datetime(header_value)
-        year = date.year
+        try:
+            date = parsedate_to_datetime(header_value)
+            year = date.year
+        except (TypeError, ValueError) as err:
+            self._log.warning(
+                'Failed to get date for %r: %s',
+                i18n.get_header_value(message, 'subject'),
+                err,
+            )
+            year = 'unparsable-date'
         dest = self._dest_mailbox_base + str(year)
         self._log.debug(
             '%s "date" header %r gives year %r and destination %s',

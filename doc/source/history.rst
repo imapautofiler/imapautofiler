@@ -2,6 +2,12 @@
  History
 =========
 
+Unreleased
+==========
+
+- Add protection for ``time-limit`` and ``sort-by-year`` in case the
+  ``Date`` header cannot be parsed.
+
 1.14.0
 ======
 
