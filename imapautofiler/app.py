@@ -57,6 +57,7 @@ def process_rules(cfg, debug, conn, dry_run=False):
 
     for mailbox in cfg['mailboxes']:
         mailbox_name = mailbox['name']
+        LOG.info('starting mailbox %r', mailbox_name)
 
         mailbox_rules = [
             rules.factory(r, cfg)
@@ -98,6 +99,7 @@ def process_rules(cfg, debug, conn, dry_run=False):
 
         # Remove messages that we just moved.
         conn.expunge()
+        LOG.info('completed mailbox %r', mailbox_name)
     LOG.info('encountered %s messages, processed %s',
              num_messages, num_processed)
     if num_errors:

@@ -7,6 +7,9 @@ Unreleased
 
 - Add protection for ``time-limit`` and ``sort-by-year`` in case the
   ``Date`` header cannot be parsed.
+- Improve progress logging by reporting when each mailbox starts and
+  showing the source mailbox along with other details for each action
+  being taken.
 
 1.14.0
 ======
