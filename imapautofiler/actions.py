@@ -111,8 +111,10 @@ class Move(Action):
 
     def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
-            '%s (%s) to %s',
-            message_id, i18n.get_header_value(message, 'subject'),
+            '%s[%s] (%s) to %s',
+            src_mailbox,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
             self._get_dest_mailbox(message_id, message),
         )
 
@@ -220,9 +222,12 @@ class Sort(Action):
     def report(self, conn, src_mailbox, message_id, message):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         self._log.info(
-            '%s (%s) to %s',
-            message_id, i18n.get_header_value(message, 'subject'),
-            dest_mailbox)
+            '%s[%s] (%s) to %s',
+            src_mailbox,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+            dest_mailbox,
+        )
 
     def invoke(self, conn, src_mailbox, message_id, message):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
@@ -318,8 +323,12 @@ class Delete(Action):
     _log = logging.getLogger(NAME)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id,
-                       i18n.get_header_value(message, 'subject'))
+        self._log.info(
+            '%s[%s] (%s)',
+            mailbox_name,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+        )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.delete_message(
@@ -343,8 +352,12 @@ class Flag(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id,
-                       i18n.get_header_value(message, 'subject'))
+        self._log.info(
+            '%s[%s] (%s)',
+            mailbox_name,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+        )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.set_flagged(mailbox_name, message_id, message, True)
@@ -364,8 +377,12 @@ class Unflag(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id,
-                       i18n.get_header_value(message, 'subject'))
+        self._log.info(
+            '%s[%s] (%s)',
+            mailbox_name,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+        )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.set_flagged(mailbox_name, message_id, message, False)
@@ -385,8 +402,12 @@ class MarkRead(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id,
-                       i18n.get_header_value(message, 'subject'))
+        self._log.info(
+            '%s[%s] (%s)',
+            mailbox_name,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+        )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.set_read(mailbox_name, message_id, message, True)
@@ -406,8 +427,12 @@ class MarkUnread(Action):
         super().__init__(action_data, cfg)
 
     def report(self, conn, mailbox_name, message_id, message):
-        self._log.info('%s (%s)', message_id,
-                       i18n.get_header_value(message, 'subject'))
+        self._log.info(
+            '%s[%s] (%s)',
+            mailbox_name,
+            message_id,
+            i18n.get_header_value(message, 'subject'),
+        )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.set_read(mailbox_name, message_id, message, False)
