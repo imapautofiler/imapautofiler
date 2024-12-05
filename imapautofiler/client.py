@@ -190,7 +190,7 @@ class IMAPClient(Client):
 
     def mailbox_iterate(self, mailbox_name):
         self._conn.select_folder(mailbox_name)
-        msg_ids = self._conn.search(['ALL'])
+        msg_ids = self._conn.search("UNSEEN")
         for msg_id in msg_ids:
             email_parser = email.parser.BytesFeedParser()
             response = self._conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
