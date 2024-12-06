@@ -181,6 +181,11 @@ class IMAPClient(Client):
         self._conn.login(username, password)
         self._mbox_names = None
 
+        if 'search' in cfg['server']:
+            self.search = cfg['server']['search']
+        else:
+            self.search = "ALL"
+
     def list_mailboxes(self):
         "Return a list of folder names."
         return (
@@ -190,7 +195,7 @@ class IMAPClient(Client):
 
     def mailbox_iterate(self, mailbox_name):
         self._conn.select_folder(mailbox_name)
-        msg_ids = self._conn.search("UNSEEN")
+        msg_ids = self._conn.search(self.search)
         for msg_id in msg_ids:
             email_parser = email.parser.BytesFeedParser()
             response = self._conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])

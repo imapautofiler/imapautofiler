@@ -1,16 +1,17 @@
 FROM python:3-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR /app
-COPY . imapautofiler/
-
 RUN apt update && \
     apt install -y --no-install-recommends git && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* && \
     python -m pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir setuptools wheel twine build && \
-    pip install --no-cache-dir ./imapautofiler && \
+    pip install --no-cache-dir setuptools wheel twine build 
+
+WORKDIR /app
+COPY . imapautofiler/
+
+RUN pip install --no-cache-dir ./imapautofiler && \
     rm -rf ./imapautofiler/.git ./imapautofiler/.github ./imapautofiler/doc
 
 CMD ["bash", "/app/imapautofiler/starting.sh"]

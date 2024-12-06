@@ -33,3 +33,21 @@ If you are using a virtualenv, you may also need to install
    $ pip install dbus-python
 
 .. _pip: https://pypi.python.org/pypi/pip
+
+============
+ Docker
+============
+
+The docker image allow to run the script with the config as mount volume.
+
+.. code-block:: shell
+    $ git clone https://github.com/imapautofiler/imapautofiler
+    $ docker build -t local-imapautofiler ./imapautofiler
+    $ docker run -it  -v "./imap-config:/app/config.d" --rm local-imapautofiler
+
+There are environements variables to change the parameters of imapautofiler :
+* ``DEBUG=true`` to pass the parameter --debug
+* ``VERBOSE=true`` to pass the parameter --verbose
+* ``LISTMAILBOXES=true`` to pass the parameter --list-mailboxes
+* ``DRYRUN=true`` to pass the parameter --dry-run
+
