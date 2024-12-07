@@ -107,6 +107,21 @@ or ``1`` (case-insensitive) will be regarded as false. The default is true).
     **Use at your own risk!** Disabling SSL/TLS connection is dangerous. You should
     preferably ask the server operator to install a proper certificate instead.
 
+Server Search
+-------------
+
+By default, the imap script will search and process ``ALL`` mail.
+It's possible to change this functionality by setting ``search`` with a value from the rfc3501_.
+The most commun values are: ``ALL``, ``UNSEEN``, ``ANSWERED``.
+
+.. _rfc3501 : https://datatracker.ietf.org/doc/html/rfc3501.html#section-6.4.4
+
+.. code-block:: yaml
+  server:
+    hostname: imap.example.com
+    username: my-user@example.com
+    search: UNSEEN
+
 Maildir Location
 ================
 
