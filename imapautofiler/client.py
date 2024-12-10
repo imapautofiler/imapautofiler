@@ -244,6 +244,9 @@ class MaildirClient(Client):
         self._root = os.path.expanduser(cfg['maildir'])
         LOG.debug('maildir: %s', self._root)
         self._mbox_names = None
+        if 'search' in cfg['server']:
+            LOG.warning('Config "search" not used with a Maildir')
+            LOG.warning('All mails into the configured mailboxes will be parsed')
 
     @contextlib.contextmanager
     def _locked(self, mailbox_name):
