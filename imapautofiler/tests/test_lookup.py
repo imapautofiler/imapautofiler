@@ -16,21 +16,20 @@ from imapautofiler import lookup
 
 
 class TestLookupTable(unittest.TestCase):
-
     def test_create(self):
         class A:
-            NAME = 'a'
+            NAME = "a"
 
         class B(A):
-            NAME = 'b'
+            NAME = "b"
 
         class C(B):
-            NAME = 'c'
+            NAME = "c"
 
         expected = {
-            'a': A,
-            'b': B,
-            'c': C,
+            "a": A,
+            "b": B,
+            "c": C,
         }
-        actual = lookup.make_lookup_table(A, 'NAME')
+        actual = lookup.make_lookup_table(A, "NAME")
         self.assertEqual(expected, actual)

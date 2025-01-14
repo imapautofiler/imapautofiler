@@ -22,31 +22,30 @@ from imapautofiler import client
 
 
 class MaildirFixture(fixtures.Fixture):
-
     def __init__(self, root, name):
         self._root = root
         self._path = os.path.join(root, name)
         self.name = name
-        self.make_message(subject='init maildir')
+        self.make_message(subject="init maildir")
 
     def make_message(
-            self,
-            subject='subject',
-            from_addr='from@example.com',
-            to_addr='to@example.com'):
+        self, subject="subject", from_addr="from@example.com", to_addr="to@example.com"
+    ):
         mbox = mailbox.Maildir(self._path)
         mbox.lock()
         try:
             msg = mailbox.MaildirMessage()
-            msg.set_unixfrom('author Sat Jul 23 15:35:34 2017')
-            msg['From'] = from_addr
-            msg['To'] = to_addr
-            msg['Subject'] = subject
-            msg['Date'] = email.utils.formatdate()
-            msg.set_payload(textwrap.dedent('''
+            msg.set_unixfrom("author Sat Jul 23 15:35:34 2017")
+            msg["From"] = from_addr
+            msg["To"] = to_addr
+            msg["Subject"] = subject
+            msg["Date"] = email.utils.formatdate()
+            msg.set_payload(
+                textwrap.dedent("""
             This is the body.
             There are 2 lines.
-            '''))
+            """)
+            )
             mbox.add(msg)
             mbox.flush()
         finally:
@@ -55,18 +54,15 @@ class MaildirFixture(fixtures.Fixture):
 
 
 class MaildirTest(unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         self.tmpdir = self.useFixture(fixtures.TempDir()).path
-        self.src_mbox = self.useFixture(
-            MaildirFixture(self.tmpdir, 'source-mailbox')
-        )
+        self.src_mbox = self.useFixture(MaildirFixture(self.tmpdir, "source-mailbox"))
         # self.msg = self.src_mbox.make_message()
         self.dest_mbox = self.useFixture(
-            MaildirFixture(self.tmpdir, 'destination-mailbox')
+            MaildirFixture(self.tmpdir, "destination-mailbox")
         )
-        self.client = client.MaildirClient({'maildir': self.tmpdir})
+        self.client = client.MaildirClient({"maildir": self.tmpdir})
 
     def useFixture(self, f):
         f.setUp()
@@ -74,24 +70,24 @@ class MaildirTest(unittest.TestCase):
         return f
 
     def test_list_mailboxes(self):
-        expected = set(['destination-mailbox', 'source-mailbox'])
+        expected = set(["destination-mailbox", "source-mailbox"])
         actual = set(self.client.list_mailboxes())
         self.assertEqual(expected, actual)
 
     def test_mailbox_iterate(self):
-        self.src_mbox.make_message(subject='added by test')
-        expected = set(['init maildir', 'added by test'])
+        self.src_mbox.make_message(subject="added by test")
+        expected = set(["init maildir", "added by test"])
         actual = set(
-            msg['subject']
+            msg["subject"]
             for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)
 
     def test_copy_message(self):
-        self.src_mbox.make_message(subject='added by test')
+        self.src_mbox.make_message(subject="added by test")
         messages = list(self.client.mailbox_iterate(self.src_mbox.name))
         for msg_id, msg in messages:
-            if msg['subject'] != 'added by test':
+            if msg["subject"] != "added by test":
                 continue
             self.client.copy_message(
                 self.src_mbox.name,
@@ -99,18 +95,18 @@ class MaildirTest(unittest.TestCase):
                 msg_id,
                 msg,
             )
-        expected = set(['init maildir', 'added by test'])
+        expected = set(["init maildir", "added by test"])
         actual = set(
-            msg['subject']
+            msg["subject"]
             for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
 
     def test_move_message(self):
-        self.src_mbox.make_message(subject='added by test')
+        self.src_mbox.make_message(subject="added by test")
         messages = list(self.client.mailbox_iterate(self.src_mbox.name))
         for msg_id, msg in messages:
-            if msg['subject'] != 'added by test':
+            if msg["subject"] != "added by test":
                 continue
             self.client.move_message(
                 self.src_mbox.name,
@@ -118,16 +114,16 @@ class MaildirTest(unittest.TestCase):
                 msg_id,
                 msg,
             )
-        expected = set(['init maildir', 'added by test'])
+        expected = set(["init maildir", "added by test"])
         actual = set(
-            msg['subject']
+            msg["subject"]
             for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
         # No longer appears in source maildir
-        expected = set(['init maildir'])
+        expected = set(["init maildir"])
         actual = set(
-            msg['subject']
+            msg["subject"]
             for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)
