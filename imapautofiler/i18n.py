@@ -15,4 +15,4 @@ from email.header import decode_header, make_header
 
 def get_header_value(msg, name):
     "Handle header decoding and return a string we examine."
-    return str(make_header(decode_header(msg.get(name, ''))))
+    return str(make_header(decode_header(msg.get(name, ""))))

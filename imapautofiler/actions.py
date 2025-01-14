@@ -37,7 +37,7 @@ class Action(metaclass=abc.ABCMeta):
         """
         self._data = action_data
         self._cfg = cfg
-        self._log.debug('new: %r', action_data)
+        self._log.debug("new: %r", action_data)
 
     @abc.abstractmethod
     def report(self, conn, mailbox_name, message_id, message):
@@ -63,15 +63,12 @@ class Action(metaclass=abc.ABCMeta):
 def _render(template_text, message):
     template = jinja2.Template(template_text)
     headers = {
-        name.lower().replace('-', '_'): i18n.get_header_value(message, name)
+        name.lower().replace("-", "_"): i18n.get_header_value(message, name)
         for name in message.keys()
     }
-    date = parsedate_to_datetime(i18n.get_header_value(message, 'date'))
-    headers['date'] = date
-    return template.render(
-        message=message,
-        **headers
-    )
+    date = parsedate_to_datetime(i18n.get_header_value(message, "date"))
+    headers["date"] = date
+    return template.render(message=message, **headers)
 
 
 class Move(Action):
@@ -97,7 +94,7 @@ class Move(Action):
 
     """
 
-    NAME = 'move'
+    NAME = "move"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -105,16 +102,16 @@ class Move(Action):
 
     def _get_dest_mailbox(self, message_id, message):
         return _render(
-            self._data.get('dest-mailbox'),
+            self._data.get("dest-mailbox"),
             message,
         )
 
     def report(self, conn, src_mailbox, message_id, message):
         self._log.info(
-            '%s[%s] (%s) to %s',
+            "%s[%s] (%s) to %s",
             src_mailbox,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
             self._get_dest_mailbox(message_id, message),
         )
 
@@ -162,59 +159,63 @@ class Sort(Action):
     # TODO(dhellmann): Extend this class to support named groups in
     # the regex.
 
-    NAME = 'sort'
+    NAME = "sort"
     _log = logging.getLogger(NAME)
-    _default_header = 'to'
-    _default_regex = r'([\w+-]+)@'
+    _default_header = "to"
+    _default_regex = r"([\w+-]+)@"
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
-        self._header = self._data.get('header', self._default_header)
-        self._dest_mailbox_base = self._data.get('dest-mailbox-base')
+        self._header = self._data.get("header", self._default_header)
+        self._dest_mailbox_base = self._data.get("dest-mailbox-base")
         if not self._dest_mailbox_base:
             raise ValueError(
-                'No dest-mailbox-base given for action {}'.format(
-                    action_data)
+                "No dest-mailbox-base given for action {}".format(action_data)
             )
-        self._dest_mailbox_regex = re.compile(self._data.get(
-            'dest-mailbox-regex', self._default_regex))
+        self._dest_mailbox_regex = re.compile(
+            self._data.get("dest-mailbox-regex", self._default_regex)
+        )
         if not self._dest_mailbox_regex.groups:
             raise ValueError(
-                'Regex {!r} has no group to select the mailbox '
-                'name portion.'.format(self._dest_mailbox_regex.pattern)
+                "Regex {!r} has no group to select the mailbox name portion.".format(
+                    self._dest_mailbox_regex.pattern
+                )
             )
         if self._dest_mailbox_regex.groups > 1:
-            if 'dest-mailbox-regex-group' not in action_data:
+            if "dest-mailbox-regex-group" not in action_data:
                 raise ValueError(
-                    'Regex {!r} has multiple groups and the '
-                    'action data does not specify the '
-                    'dest-mailbox-regex-group to use.'.format(
-                        self._dest_mailbox_regex.pattern)
+                    "Regex {!r} has multiple groups and the "
+                    "action data does not specify the "
+                    "dest-mailbox-regex-group to use.".format(
+                        self._dest_mailbox_regex.pattern
+                    )
                 )
-        self._dest_mailbox_regex_group = action_data.get(
-            'dest-mailbox-regex-group', 0)
+        self._dest_mailbox_regex_group = action_data.get("dest-mailbox-regex-group", 0)
 
     def _get_dest_mailbox(self, message_id, message):
         header_value = i18n.get_header_value(message, self._header)
         match = self._dest_mailbox_regex.search(header_value)
         if not match:
             raise ValueError(
-                'Could not determine destination mailbox from '
-                '{!r} header {!r} with regex {!r}'.format(
-                    self._header, header_value, self._dest_mailbox_regex)
+                "Could not determine destination mailbox from "
+                "{!r} header {!r} with regex {!r}".format(
+                    self._header, header_value, self._dest_mailbox_regex
+                )
             )
         self._log.debug(
-            '%s %r header %r matched regex %r with %r',
-            message_id, self._header, header_value,
+            "%s %r header %r matched regex %r with %r",
+            message_id,
+            self._header,
+            header_value,
             self._dest_mailbox_regex.pattern,
             match.groups(),
         )
         self._log.debug(
-            '%s using group %s',
+            "%s using group %s",
             message_id,
             self._dest_mailbox_regex_group,
         )
-        return '{}{}'.format(
+        return "{}{}".format(
             _render(self._dest_mailbox_base, message),
             match.groups()[self._dest_mailbox_regex_group],
         )
@@ -222,10 +223,10 @@ class Sort(Action):
     def report(self, conn, src_mailbox, message_id, message):
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         self._log.info(
-            '%s[%s] (%s) to %s',
+            "%s[%s] (%s) to %s",
             src_mailbox,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
             dest_mailbox,
         )
 
@@ -250,10 +251,10 @@ class SortMailingList(Sort):
 
     """
 
-    NAME = 'sort-mailing-list'
+    NAME = "sort-mailing-list"
     _log = logging.getLogger(NAME)
-    _default_header = 'list-id'
-    _default_regex = r'<?([^.]+)\..*>?'
+    _default_header = "list-id"
+    _default_regex = r"<?([^.]+)\..*>?"
 
 
 class SortByYear(Sort):
@@ -263,26 +264,29 @@ class SortByYear(Sort):
 
     """
 
-    NAME = 'sort-by-year'
+    NAME = "sort-by-year"
     _log = logging.getLogger(NAME)
-    _default_header = 'date'
+    _default_header = "date"
 
     def _get_dest_mailbox(self, message_id, message):
-        header_value = i18n.get_header_value(message, 'date')
+        header_value = i18n.get_header_value(message, "date")
         try:
             date = parsedate_to_datetime(header_value)
             year = date.year
         except (TypeError, ValueError) as err:
             self._log.warning(
-                'Failed to get date for %r: %s',
-                i18n.get_header_value(message, 'subject'),
+                "Failed to get date for %r: %s",
+                i18n.get_header_value(message, "subject"),
                 err,
             )
-            year = 'unparsable-date'
+            year = "unparsable-date"
         dest = self._dest_mailbox_base + str(year)
         self._log.debug(
             '%s "date" header %r gives year %r and destination %s',
-            message_id, header_value, year, dest,
+            message_id,
+            header_value,
+            year,
+            dest,
         )
         return dest
 
@@ -297,16 +301,14 @@ class Trash(Move):
 
     """
 
-    NAME = 'trash'
+    NAME = "trash"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
         super().__init__(action_data, cfg)
-        self._dest_mailbox = (
-            self._data.get('dest-mailbox') or cfg.get('trash-mailbox'))
+        self._dest_mailbox = self._data.get("dest-mailbox") or cfg.get("trash-mailbox")
         if self._dest_mailbox is None:
-            raise ValueError(
-                'no "dest-mailbox" or "trash-mailbox" set in config')
+            raise ValueError('no "dest-mailbox" or "trash-mailbox" set in config')
 
     def _get_dest_mailbox(self, message_id, message):
         return self._dest_mailbox
@@ -319,15 +321,15 @@ class Delete(Action):
 
     """
 
-    NAME = 'delete'
+    NAME = "delete"
     _log = logging.getLogger(NAME)
 
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info(
-            '%s[%s] (%s)',
+            "%s[%s] (%s)",
             mailbox_name,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
         )
 
     def invoke(self, conn, mailbox_name, message_id, message):
@@ -345,7 +347,7 @@ class Flag(Action):
 
     """
 
-    NAME = 'flag'
+    NAME = "flag"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -353,10 +355,10 @@ class Flag(Action):
 
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info(
-            '%s[%s] (%s)',
+            "%s[%s] (%s)",
             mailbox_name,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
         )
 
     def invoke(self, conn, mailbox_name, message_id, message):
@@ -370,7 +372,7 @@ class Unflag(Action):
 
     """
 
-    NAME = 'unflag'
+    NAME = "unflag"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -378,10 +380,10 @@ class Unflag(Action):
 
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info(
-            '%s[%s] (%s)',
+            "%s[%s] (%s)",
             mailbox_name,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
         )
 
     def invoke(self, conn, mailbox_name, message_id, message):
@@ -395,7 +397,7 @@ class MarkRead(Action):
 
     """
 
-    NAME = 'mark_read'
+    NAME = "mark_read"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -403,10 +405,10 @@ class MarkRead(Action):
 
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info(
-            '%s[%s] (%s)',
+            "%s[%s] (%s)",
             mailbox_name,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
         )
 
     def invoke(self, conn, mailbox_name, message_id, message):
@@ -420,7 +422,7 @@ class MarkUnread(Action):
 
     """
 
-    NAME = 'mark_unread'
+    NAME = "mark_unread"
     _log = logging.getLogger(NAME)
 
     def __init__(self, action_data, cfg):
@@ -428,17 +430,17 @@ class MarkUnread(Action):
 
     def report(self, conn, mailbox_name, message_id, message):
         self._log.info(
-            '%s[%s] (%s)',
+            "%s[%s] (%s)",
             mailbox_name,
             message_id,
-            i18n.get_header_value(message, 'subject'),
+            i18n.get_header_value(message, "subject"),
         )
 
     def invoke(self, conn, mailbox_name, message_id, message):
         conn.set_read(mailbox_name, message_id, message, False)
 
 
-_lookup_table = lookup.make_lookup_table(Action, 'NAME')
+_lookup_table = lookup.make_lookup_table(Action, "NAME")
 
 
 def factory(action_data, cfg):
@@ -453,7 +455,7 @@ def factory(action_data, cfg):
     process a message.
 
     """
-    name = action_data.get('name')
+    name = action_data.get("name")
     if name in _lookup_table:
         return _lookup_table[name](action_data, cfg)
-    raise ValueError('unrecognized rule action {!r}'.format(action_data))
+    raise ValueError("unrecognized rule action {!r}".format(action_data))

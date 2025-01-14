@@ -10,8 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Mail client API.
-"""
+"""Mail client API."""
 
 import abc
 import contextlib
@@ -26,20 +25,19 @@ import imapclient
 from . import secrets
 from .config import tobool
 
-LOG = logging.getLogger('imapautofiler.client')
+LOG = logging.getLogger("imapautofiler.client")
 
 
 def open_connection(cfg):
     "Open a connection to the mail server."
-    if 'server' in cfg:
+    if "server" in cfg:
         return IMAPClient(cfg)
-    if 'maildir' in cfg:
+    if "maildir" in cfg:
         return MaildirClient(cfg)
-    raise ValueError('Could not find connection information in config')
+    raise ValueError("Could not find connection information in config")
 
 
 class Client(metaclass=abc.ABCMeta):
-
     def __init__(self, cfg):
         self._cfg = cfg
 
@@ -149,52 +147,48 @@ class Client(metaclass=abc.ABCMeta):
 
 
 class IMAPClient(Client):
-
     def __init__(self, cfg):
         super().__init__(cfg)
 
         # Use default client behavior if ca_file not provided.
-        if 'ca_file' in cfg['server']:
+        if "ca_file" in cfg["server"]:
             context = ssl.create_default_context(
-                cafile=cfg['server']['ca_file'],
+                cafile=cfg["server"]["ca_file"],
             )
         else:
             context = ssl.create_default_context()
 
-        if 'check_hostname' in cfg['server']:
+        if "check_hostname" in cfg["server"]:
             context.verify_mode = ssl.CERT_REQUIRED
-            context.check_hostname = tobool(cfg['server']['check_hostname'])
+            context.check_hostname = tobool(cfg["server"]["check_hostname"])
 
         use_ssl = True
-        if 'ssl' in cfg['server']:
-            use_ssl = tobool(cfg['server']['ssl'])
+        if "ssl" in cfg["server"]:
+            use_ssl = tobool(cfg["server"]["ssl"])
 
         self._conn = imapclient.IMAPClient(
-            cfg['server']['hostname'],
+            cfg["server"]["hostname"],
             use_uid=True,
             ssl=use_ssl,
-            port=cfg['server'].get('port'),
+            port=cfg["server"].get("port"),
             ssl_context=context,
         )
-        username = cfg['server']['username']
+        username = cfg["server"]["username"]
         password = secrets.get_password(cfg)
         self._conn.login(username, password)
         self._mbox_names = None
 
     def list_mailboxes(self):
         "Return a list of folder names."
-        return (
-            f[-1]
-            for f in self._conn.list_folders()
-        )
+        return (f[-1] for f in self._conn.list_folders())
 
     def mailbox_iterate(self, mailbox_name):
         self._conn.select_folder(mailbox_name)
-        msg_ids = self._conn.search(['ALL'])
+        msg_ids = self._conn.search(["ALL"])
         for msg_id in msg_ids:
             email_parser = email.parser.BytesFeedParser()
-            response = self._conn.fetch([msg_id], ['BODY.PEEK[HEADER]'])
-            email_parser.feed(response[msg_id][b'BODY[HEADER]'])
+            response = self._conn.fetch([msg_id], ["BODY.PEEK[HEADER]"])
+            email_parser.feed(response[msg_id][b"BODY[HEADER]"])
             message = email_parser.close()
             yield (msg_id, message)
 
@@ -202,7 +196,7 @@ class IMAPClient(Client):
         if self._mbox_names is None:
             self._mbox_names = set(self.list_mailboxes())
         if name not in self._mbox_names:
-            LOG.debug('creating mailbox %s', name)
+            LOG.debug("creating mailbox %s", name)
             self._conn.create_folder(name)
             self._mbox_names.add(name)
 
@@ -237,17 +231,16 @@ class IMAPClient(Client):
 
 
 class MaildirClient(Client):
-
     def __init__(self, cfg):
         super().__init__(cfg)
-        self._root = os.path.expanduser(cfg['maildir'])
-        LOG.debug('maildir: %s', self._root)
+        self._root = os.path.expanduser(cfg["maildir"])
+        LOG.debug("maildir: %s", self._root)
         self._mbox_names = None
 
     @contextlib.contextmanager
     def _locked(self, mailbox_name):
         path = os.path.join(self._root, mailbox_name)
-        LOG.debug('locking %s', path)
+        LOG.debug("locking %s", path)
         box = mailbox.Maildir(path, create=True)
         box.lock()
         try:
@@ -270,18 +263,18 @@ class MaildirClient(Client):
         with self._locked(src_mailbox) as box:
             message = box[message_id]
             if is_flagged:
-                message.add_flag('F')
+                message.add_flag("F")
             else:
-                message.remove_flag('F')
+                message.remove_flag("F")
             box[message_id] = message
 
     def set_read(self, src_mailbox, message_id, message, is_flagged):
         with self._locked(src_mailbox) as box:
             message = box[message_id]
             if is_flagged:
-                message.add_flag('R')
+                message.add_flag("R")
             else:
-                message.remove_flag('R')
+                message.remove_flag("R")
             box[message_id] = message
 
     def copy_message(self, src_mailbox, dest_mailbox, message_id, message):

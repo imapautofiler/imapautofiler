@@ -13,7 +13,7 @@ jobs:
       matrix:
         tox-environment:
           - docs
-          - pep8
+          - linter
           - pkglint
 
     steps:
