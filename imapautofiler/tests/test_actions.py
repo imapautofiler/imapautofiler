@@ -317,6 +317,7 @@ class TestSortByYear(base.TestCase):
             },
             {},
         )
+        del self.msg["date"]
         self.msg["date"] = "Thu, 28 Dec 2023 13:47:53 -0600"
         conn = mock.Mock()
         m.invoke(conn, "src-mailbox", "id-here", self.msg)
@@ -332,11 +333,43 @@ class TestSortByYear(base.TestCase):
             },
             {},
         )
+        del self.msg["date"]
+        self.msg["date"] = "there is no date in this string"
+        conn = mock.Mock()
+        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        conn.move_message.assert_called_once_with(
+            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
+        )
+
+    def test_no_date_header(self):
+        m = actions.SortByYear(
+            {
+                "name": "sort-by-year",
+                "dest-mailbox-base": "archive-under-here/",
+            },
+            {},
+        )
+        del self.msg["date"]
+        conn = mock.Mock()
+        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        conn.move_message.assert_called_once_with(
+            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
+        )
+
+    def test_empty_date_header(self):
+        m = actions.SortByYear(
+            {
+                "name": "sort-by-year",
+                "dest-mailbox-base": "archive-under-here/",
+            },
+            {},
+        )
+        del self.msg["date"]
         self.msg["date"] = ""
         conn = mock.Mock()
         m.invoke(conn, "src-mailbox", "id-here", self.msg)
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "archive-under-here/2023", "id-here", self.msg
+            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
         )
 
 
