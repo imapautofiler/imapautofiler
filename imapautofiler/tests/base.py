@@ -11,14 +11,11 @@
 #    under the License.
 
 import email.parser
-import logging
 import unittest
 from datetime import datetime, timedelta, timezone
 from email.header import Header
 from email.message import Message
 from email.utils import format_datetime
-
-import fixtures
 
 
 def construct_message(headers):
