@@ -10,8 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-"""
+""" """
 
 import argparse
 import imaplib
@@ -20,7 +19,7 @@ import sys
 
 from imapautofiler import actions, client, config, rules
 
-LOG = logging.getLogger('imapautofiler')
+LOG = logging.getLogger("imapautofiler")
 
 
 def list_mailboxes(cfg, debug, conn):
@@ -55,21 +54,18 @@ def process_rules(cfg, debug, conn, dry_run=False):
     num_processed = 0
     num_errors = 0
 
-    for mailbox in cfg['mailboxes']:
-        mailbox_name = mailbox['name']
-        LOG.info('starting mailbox %r', mailbox_name)
+    for mailbox in cfg["mailboxes"]:
+        mailbox_name = mailbox["name"]
+        LOG.info("starting mailbox %r", mailbox_name)
 
-        mailbox_rules = [
-            rules.factory(r, cfg)
-            for r in mailbox['rules']
-        ]
+        mailbox_rules = [rules.factory(r, cfg) for r in mailbox["rules"]]
 
-        for (msg_id, message) in conn.mailbox_iterate(mailbox_name):
+        for msg_id, message in conn.mailbox_iterate(mailbox_name):
             num_messages += 1
             if debug:
                 print(message.as_string().rstrip())
             else:
-                LOG.debug('message %s: %s', msg_id, message['subject'])
+                LOG.debug("message %s: %s", msg_id, message["subject"])
 
             for rule in mailbox_rules:
                 if rule.check(message):
@@ -77,12 +73,14 @@ def process_rules(cfg, debug, conn, dry_run=False):
                     try:
                         action.report(conn, mailbox_name, msg_id, message)
                         if not dry_run:
-                            action.invoke(conn, mailbox_name, msg_id,
-                                          message)
+                            action.invoke(conn, mailbox_name, msg_id, message)
                     except Exception as err:
-                        LOG.error('failed to %s "%s": %s',
-                                  action.NAME,
-                                  message['subject'], err)
+                        LOG.error(
+                            'failed to %s "%s": %s',
+                            action.NAME,
+                            message["subject"],
+                            err,
+                        )
                         num_errors += 1
                         if debug:
                             raise
@@ -93,49 +91,51 @@ def process_rules(cfg, debug, conn, dry_run=False):
                     # look at the other rules.
                     break
                 else:
-                    LOG.debug('no rules match')
+                    LOG.debug("no rules match")
 
             # break
 
         # Remove messages that we just moved.
         conn.expunge()
-        LOG.info('completed mailbox %r', mailbox_name)
-    LOG.info('encountered %s messages, processed %s',
-             num_messages, num_processed)
+        LOG.info("completed mailbox %r", mailbox_name)
+    LOG.info("encountered %s messages, processed %s", num_messages, num_processed)
     if num_errors:
-        LOG.info('encountered %d errors', num_errors)
+        LOG.info("encountered %d errors", num_errors)
     return
 
 
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
+        "-v",
+        "--verbose",
+        action="store_true",
         default=False,
-        help='report more details about what is happening',
+        help="report more details about what is happening",
     )
     parser.add_argument(
-        '--debug',
-        action='store_true',
+        "--debug",
+        action="store_true",
         default=False,
-        help='turn on imaplib debugging output',
+        help="turn on imaplib debugging output",
     )
     parser.add_argument(
-        '-c', '--config-file',
-        default='~/.imapautofiler.yml',
+        "-c",
+        "--config-file",
+        default="~/.imapautofiler.yml",
     )
     parser.add_argument(
-        '--list-mailboxes',
+        "--list-mailboxes",
         default=False,
-        action='store_true',
-        help='instead of processing rules, print a list of mailboxes',
+        action="store_true",
+        help="instead of processing rules, print a list of mailboxes",
     )
     parser.add_argument(
-        '-n', '--dry-run',
+        "-n",
+        "--dry-run",
         default=False,
-        action='store_true',
-        help='process the rules without taking any action',
+        action="store_true",
+        help="process the rules without taking any action",
     )
     args = parser.parse_args()
 
@@ -149,9 +149,9 @@ def main(args=None):
 
     logging.basicConfig(
         level=log_level,
-        format='%(name)s: %(message)s',
+        format="%(name)s: %(message)s",
     )
-    logging.debug('starting')
+    logging.debug("starting")
 
     try:
         cfg = config.get_config(args.config_file)
@@ -170,5 +170,5 @@ def main(args=None):
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

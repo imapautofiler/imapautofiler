@@ -3,7 +3,7 @@ import getpass
 
 import keyring
 
-LOG = logging.getLogger('imapautofiler.client')
+LOG = logging.getLogger("imapautofiler.client")
 
 
 class FixedPasswordSecret:
@@ -15,7 +15,6 @@ class FixedPasswordSecret:
 
 
 class KeyringPasswordSecret:
-
     def __init__(self, hostname, username):
         self.hostname = hostname
         self.username = username
@@ -25,8 +24,9 @@ class KeyringPasswordSecret:
         if not password:
             LOG.debug("No keyring password; getting one interactively")
             password = getpass.getpass(
-                'Password for {} (will be stored in the system keyring):'
-                .format(self.username)
+                "Password for {} (will be stored in the system keyring):".format(
+                    self.username
+                )
             )
             keyring.set_password(self.hostname, self.username, password)
 
@@ -34,20 +34,19 @@ class KeyringPasswordSecret:
 
 
 class AskPassword:
-
     def __init__(self, hostname, username):
         self.hostname = hostname
         self.username = username
 
     def get_password(self):
-        return getpass.getpass('Password for {}:'.format(self.username))
+        return getpass.getpass("Password for {}:".format(self.username))
 
 
 def configure_providers(cfg):
     # First, we'll try for the in-config one. It's not recommended, but someone
     # may have set it.
     try:
-        provider = FixedPasswordSecret(cfg['server']['password'])
+        provider = FixedPasswordSecret(cfg["server"]["password"])
         LOG.debug("Password provider in config as cleartext")
     except KeyError:
         pass
@@ -56,21 +55,21 @@ def configure_providers(cfg):
 
     # Second, we will try for a keyring password if configured
     try:
-        use_keyring = cfg['server']['use_keyring']
+        use_keyring = cfg["server"]["use_keyring"]
     except KeyError:
         use_keyring = False
 
     if use_keyring:
         LOG.debug("Password configured from keyring")
         yield KeyringPasswordSecret(
-            hostname=cfg['server']['hostname'],
-            username=cfg['server']['username'],
+            hostname=cfg["server"]["hostname"],
+            username=cfg["server"]["username"],
         )
 
     else:
         yield AskPassword(
-            hostname=cfg['server']['hostname'],
-            username=cfg['server']['username'],
+            hostname=cfg["server"]["hostname"],
+            username=cfg["server"]["username"],
         )
 
 

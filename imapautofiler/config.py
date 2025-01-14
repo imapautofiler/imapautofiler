@@ -29,8 +29,8 @@ def get_config(filename):
 
     """
     filename = os.path.expanduser(filename)
-    LOG.debug('loading config from %s', filename)
-    with open(filename, 'r', encoding='utf-8') as f:
+    LOG.debug("loading config from %s", filename)
+    with open(filename, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -39,6 +39,4 @@ def tobool(value):
     if isinstance(value, bool):
         return value
 
-    return (
-        str(value).lower() in ('y', 'yes', 't', 'true', 'on', 'enabled', '1')
-    )
+    return str(value).lower() in ("y", "yes", "t", "true", "on", "enabled", "1")

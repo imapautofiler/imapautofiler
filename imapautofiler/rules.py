@@ -35,7 +35,7 @@ class Rule(metaclass=abc.ABCMeta):
         :type cfg: dict
 
         """
-        self._log.debug('rule %r', rule_data)
+        self._log.debug("rule %r", rule_data)
         self._data = rule_data
         self._cfg = cfg
 
@@ -52,7 +52,7 @@ class Rule(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def get_action(self):
-        return self._data.get('action', {})
+        return self._data.get("action", {})
 
 
 class Or(Rule):
@@ -65,19 +65,16 @@ class Or(Rule):
 
     """
 
-    NAME = 'or'
+    NAME = "or"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._sub_rules = [
-            factory(r, cfg)
-            for r in rule_data['or'].get('rules', [])
-        ]
+        self._sub_rules = [factory(r, cfg) for r in rule_data["or"].get("rules", [])]
 
     def check(self, message):
         if not self._sub_rules:
-            self._log.debug('no sub-rules')
+            self._log.debug("no sub-rules")
             return False
         return any(r.check(message) for r in self._sub_rules)
 
@@ -92,19 +89,16 @@ class And(Rule):
 
     """
 
-    NAME = 'and'
+    NAME = "and"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._sub_rules = [
-            factory(r, cfg)
-            for r in rule_data['and'].get('rules', [])
-        ]
+        self._sub_rules = [factory(r, cfg) for r in rule_data["and"].get("rules", [])]
 
     def check(self, message):
         if not self._sub_rules:
-            self._log.debug('no sub-rules')
+            self._log.debug("no sub-rules")
             return False
         return all(r.check(message) for r in self._sub_rules)
 
@@ -118,18 +112,18 @@ class Recipient(Or):
 
     """
 
-    NAME = 'recipient'
+    NAME = "recipient"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         rules = []
-        for header in ['to', 'cc']:
+        for header in ["to", "cc"]:
             header_data = {}
-            header_data.update(rule_data['recipient'])
-            header_data['name'] = header
-            rules.append({'headers': [header_data]})
-        rule_data['or'] = {
-            'rules': rules,
+            header_data.update(rule_data["recipient"])
+            header_data["name"] = header
+            rules.append({"headers": [header_data]})
+        rule_data["or"] = {
+            "rules": rules,
         }
         super().__init__(rule_data, cfg)
 
@@ -145,37 +139,37 @@ class Headers(Rule):
 
     """
 
-    NAME = 'headers'
+    NAME = "headers"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
         self._matchers = []
-        for header in rule_data.get('headers', []):
-            if 'substring' in header:
+        for header in rule_data.get("headers", []):
+            if "substring" in header:
                 self._matchers.append(HeaderSubString(header, cfg))
-            elif 'regex' in header:
+            elif "regex" in header:
                 self._matchers.append(HeaderRegex(header, cfg))
-            elif 'value' in header:
+            elif "value" in header:
                 self._matchers.append(HeaderExactValue(header, cfg))
             else:
-                raise ValueError('unknown header matcher {!r}'.format(header))
+                raise ValueError("unknown header matcher {!r}".format(header))
 
     def check(self, message):
         if not self._matchers:
-            self._log.debug('no sub-rules')
+            self._log.debug("no sub-rules")
             return False
         return all(m.check(message) for m in self._matchers)
 
 
 class _HeaderMatcher(Rule):
-    _log = logging.getLogger('header')
+    _log = logging.getLogger("header")
     NAME = None  # matchers cannot be used directly
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._header_name = rule_data['name']
-        self._value = rule_data.get('value', '').lower()
+        self._header_name = rule_data["name"]
+        self._value = rule_data.get("value", "").lower()
 
     @abc.abstractmethod
     def _check_rule(self, header_value):
@@ -187,93 +181,97 @@ class _HeaderMatcher(Rule):
 
 
 class HeaderExactValue(_HeaderMatcher):
-    _log = logging.getLogger('header-exact-value')
+    _log = logging.getLogger("header-exact-value")
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._header_name = rule_data['name']
-        self._value = rule_data.get('value', '').lower()
+        self._header_name = rule_data["name"]
+        self._value = rule_data.get("value", "").lower()
 
     def _check_rule(self, header_value):
-        self._log.debug('%r == %r', self._value, header_value)
+        self._log.debug("%r == %r", self._value, header_value)
         return self._value == header_value.lower()
 
 
 class HeaderSubString(_HeaderMatcher):
     "Implements substring matching for headers."
 
-    _log = logging.getLogger('header-substring')
+    _log = logging.getLogger("header-substring")
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._value = rule_data.get('substring', '').lower()
+        self._value = rule_data.get("substring", "").lower()
 
     def _check_rule(self, header_value):
-        self._log.debug('%r in %r', self._value, header_value)
+        self._log.debug("%r in %r", self._value, header_value)
         return self._value in header_value.lower()
 
 
 class HeaderRegex(_HeaderMatcher):
     "Implements regular expression matching for headers."
 
-    _log = logging.getLogger('header-regex')
+    _log = logging.getLogger("header-regex")
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._value = rule_data.get('regex', '')
+        self._value = rule_data.get("regex", "")
         self._regex = re.compile(self._value)
 
     def _check_rule(self, header_value):
-        self._log.debug('%r matches %r', self._regex, header_value)
+        self._log.debug("%r matches %r", self._regex, header_value)
         return bool(self._regex.search(header_value))
 
 
 class HeaderExists(Rule):
     "Looks for a message to have a given header."
 
-    NAME = 'header-exists'
+    NAME = "header-exists"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
         super().__init__(rule_data, cfg)
-        self._header_name = rule_data['name']
+        self._header_name = rule_data["name"]
 
     def check(self, message):
-        self._log.debug('%r exists', self._header_name)
+        self._log.debug("%r exists", self._header_name)
         return self._header_name in message
 
 
 class IsMailingList(HeaderExists):
     "Looks for a message to have a given header."
 
-    NAME = 'is-mailing-list'
+    NAME = "is-mailing-list"
     _log = logging.getLogger(NAME)
 
     def __init__(self, rule_data, cfg):
-        if 'name' not in rule_data:
-            rule_data['name'] = 'list-id'
+        if "name" not in rule_data:
+            rule_data["name"] = "list-id"
         super().__init__(rule_data, cfg)
 
 
 class TimeLimit(Rule):
     """True if message is older than the specified 'age' measured
-     in number of days."""
+    in number of days."""
 
-    NAME = 'time-limit'
+    NAME = "time-limit"
     _log = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg, ):
+    def __init__(
+        self,
+        rule_data,
+        cfg,
+    ):
         super().__init__(rule_data, cfg)
-        self._age = rule_data['time-limit']['age']
+        self._age = rule_data["time-limit"]["age"]
 
     def check(self, message):
-        header_value = i18n.get_header_value(message, 'date')
+        header_value = i18n.get_header_value(message, "date")
         try:
             date = parsedate_to_datetime(header_value)
         except (TypeError, ValueError) as err:
             self._log.error(
-                'Failed to check date for %r: %s',
-                i18n.get_header_value(message, 'subject'),
+                "Failed to check date for %r: %s",
+                i18n.get_header_value(message, "subject"),
                 err,
             )
             return False
@@ -292,7 +290,7 @@ class TimeLimit(Rule):
                 return 0
 
 
-_lookup_table = lookup.make_lookup_table(Rule, 'NAME')
+_lookup_table = lookup.make_lookup_table(Rule, "NAME")
 
 
 def factory(rule_data, cfg):
@@ -308,8 +306,8 @@ def factory(rule_data, cfg):
 
     """
     for key in rule_data:
-        if key == 'action':
+        if key == "action":
             continue
         if key in _lookup_table:
             return _lookup_table[key](rule_data, cfg)
-    raise ValueError('Unknown rule type {!r}'.format(rule_data))
+    raise ValueError("Unknown rule type {!r}".format(rule_data))
