@@ -23,7 +23,7 @@ import fixtures
 
 def construct_message(headers):
     msg = Message()
-    encoding = 'utf-8'
+    encoding = "utf-8"
 
     for header, value in headers.items():
         msg[header] = Header(value, encoding)
@@ -32,48 +32,52 @@ def construct_message(headers):
 
 
 date = format_datetime(datetime.now(timezone.utc))
-past_date = format_datetime(
-    datetime.now(timezone.utc) - timedelta(days=90)
-)
+past_date = format_datetime(datetime.now(timezone.utc) - timedelta(days=90))
 MESSAGE = {
-    'From': 'Sender Name <sender@example.com>',
-    'Content-Type':
-        'multipart/alternative; '
-        'boundary="Apple-Mail=_F10D7C06-52F7-4F60-BEC9-4D5F29A9BFE1"',
-    'Message-Id': '<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>',
-    'Mime-Version': r'1.0 (Mac OS X Mail 9.2 \(3112\))',
-    'X-Smtp-Server': 'AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9',
-    'Subject': 'Re: reply to previous message',
-    'Date': past_date,
-    'X-Universally-Unique-Identifier': 'CC844EE1-C406-4ABA-9DA5-685759BBC15A',
-    'References': '<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>',
-    'To': 'recipient1@example.com',
-    'CC': 'recipient2@example.com',
-    'In-Reply-To': '<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>'
-
+    "From": "Sender Name <sender@example.com>",
+    "Content-Type": "multipart/alternative; "
+    'boundary="Apple-Mail=_F10D7C06-52F7-4F60-BEC9-4D5F29A9BFE1"',
+    "Message-Id": "<4FF56508-357B-4E73-82DE-458D3EEB2753@example.com>",
+    "Mime-Version": r"1.0 (Mac OS X Mail 9.2 \(3112\))",
+    "X-Smtp-Server": "AE35BF63-D70A-4AB0-9FAA-3F18EB9802A9",
+    "Subject": "Re: reply to previous message",
+    "Date": past_date,
+    "X-Universally-Unique-Identifier": "CC844EE1-C406-4ABA-9DA5-685759BBC15A",
+    "References": "<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>",
+    "To": "recipient1@example.com",
+    "CC": "recipient2@example.com",
+    "In-Reply-To": "<33509d2c-e2a7-48c0-8bf3-73b4ba352b2f@example.com>",
 }
 
 I18N_MESSAGE = MESSAGE.copy()
-I18N_MESSAGE.update({
-    'From': 'Иванов Иван <sender@example.com>',
-    'To': 'Иванов Иван <recipient3@example.com>',
-    'Subject': 'Re: ответ на предыдущее сообщение',
-})
+I18N_MESSAGE.update(
+    {
+        "From": "Иванов Иван <sender@example.com>",
+        "To": "Иванов Иван <recipient3@example.com>",
+        "Subject": "Re: ответ на предыдущее сообщение",
+    }
+)
 
 RECENT_MESSAGE = MESSAGE.copy()
-RECENT_MESSAGE.update({
-    'Date': date,
-})
+RECENT_MESSAGE.update(
+    {
+        "Date": date,
+    }
+)
 
 WITHOUT_OFFSET_MESSAGE = MESSAGE.copy()
-WITHOUT_OFFSET_MESSAGE.update({
-    'Date': 'Thu, 07 Sep 2000 20:57:30 -0000',
-})
+WITHOUT_OFFSET_MESSAGE.update(
+    {
+        "Date": "Thu, 07 Sep 2000 20:57:30 -0000",
+    }
+)
 
 WITHOUT_DATE_MESSAGE = MESSAGE.copy()
-WITHOUT_DATE_MESSAGE.update({
-    'Date': '',
-})
+WITHOUT_DATE_MESSAGE.update(
+    {
+        "Date": "",
+    }
+)
 
 
 class TestCase(unittest.TestCase):
@@ -83,14 +87,6 @@ class TestCase(unittest.TestCase):
     _without_offset_msg = None
     _without_date_msg = None
 
-    def setUp(self):
-        super().setUp()
-        # Capture logging
-        self.useFixture(fixtures.FakeLogger(level=logging.DEBUG))
-        # Capturing printing
-        stdout = self.useFixture(fixtures.StringStream('stdout')).stream
-        self.useFixture(fixtures.MonkeyPatch('sys.stdout', stdout))
-
     def useFixture(self, f):
         f.setUp()
         self.addCleanup(f.cleanUp)
@@ -99,9 +95,7 @@ class TestCase(unittest.TestCase):
     @property
     def msg(self):
         if self._msg is None:
-            self._msg = email.parser.Parser().parsestr(
-                construct_message(MESSAGE)
-            )
+            self._msg = email.parser.Parser().parsestr(construct_message(MESSAGE))
         return self._msg
 
     @property
