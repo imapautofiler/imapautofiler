@@ -10,6 +10,9 @@ Unreleased
 - Improve progress logging by reporting when each mailbox starts and
   showing the source mailbox along with other details for each action
   being taken.
+- Correct a problem with the handlig of unparsable dates in `SortByDate` so that
+  messages without a `Date` header or with a `Date` header that cannot be parsed
+  are sorted into a special mailbox called `unparsable-date`.
 
 1.14.0
 ======
