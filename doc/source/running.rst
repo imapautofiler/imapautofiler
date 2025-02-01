@@ -7,14 +7,15 @@ Run ``imapautofiler`` on the command line.
 .. code-block:: text
 
    $ imapautofiler -h
-   usage: imapautofiler [-h] [-v] [--debug] [-c CONFIG_FILE] [--list-mailboxes]
+   usage: imapautofiler [-h] [-v] [--debug] [-c CONFIG_FILE] [--list-mailboxes] [-n]
    
-   optional arguments:
+   options:
      -h, --help            show this help message and exit
      -v, --verbose         report more details about what is happening
      --debug               turn on imaplib debugging output
-     -c CONFIG_FILE, --config-file CONFIG_FILE
+     -c, --config-file CONFIG_FILE
      --list-mailboxes      instead of processing rules, print a list of mailboxes
+     -n, --dry-run         process the rules without taking any action
 
 When run with no arguments, it reads the default configuration file
 and processes the rules.
