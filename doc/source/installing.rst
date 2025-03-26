@@ -50,9 +50,11 @@ Imapautofiler will be run for all config file present into that folder.
 The folder read by the script is : ``/app/config.d/``, you can mount it
 from the host machine with ``-v "./my-config-folder:/app/config.d/"``.
 
+Since the Dockerfile is inside the ``contrib/`` folder, you need the specify
+the file path.
 Here is an example how to build and run the image in dry-run mode:
 
 .. code-block:: shell
     $ git clone https://github.com/imapautofiler/imapautofiler
-    $ docker build -t local-imapautofiler ./imapautofiler/contrib
+    $ docker build -t local-imapautofiler -f ./imapautofiler/contrib/Dockerfile ./imapautofiler
     $ docker run -it -e "DRYRUN=true" -v "./imap-config:/app/config.d" --rm local-imapautofiler
