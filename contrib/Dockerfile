@@ -10,7 +10,7 @@ RUN apt update && \
 
 WORKDIR /app
 COPY . imapautofiler/
-RUN ls -alih imapautofiler/
+
 RUN pip install --no-cache-dir ./imapautofiler && \
     rm -rf ./imapautofiler/.git ./imapautofiler/.github ./imapautofiler/doc
 
