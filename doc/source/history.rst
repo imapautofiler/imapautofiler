@@ -13,6 +13,7 @@ Unreleased
 - Correct a problem with the handlig of unparsable dates in `SortByDate` so that
   messages without a `Date` header or with a `Date` header that cannot be parsed
   are sorted into a special mailbox called `unparsable-date`.
+- Convert packaging from setuptools to hatchling.
 
 1.14.0
 ======
