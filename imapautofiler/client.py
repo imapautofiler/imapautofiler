@@ -177,6 +177,7 @@ class IMAPClient(Client):
         password = secrets.get_password(cfg)
         self._conn.login(username, password)
         self._mbox_names = None
+        self.search = cfg['server'].get('search', 'ALL')
 
     def list_mailboxes(self):
         "Return a list of folder names."
@@ -184,7 +185,7 @@ class IMAPClient(Client):
 
     def mailbox_iterate(self, mailbox_name):
         self._conn.select_folder(mailbox_name)
-        msg_ids = self._conn.search(["ALL"])
+        msg_ids = self._conn.search(self.search)
         for msg_id in msg_ids:
             email_parser = email.parser.BytesFeedParser()
             response = self._conn.fetch([msg_id], ["BODY.PEEK[HEADER]"])
@@ -236,6 +237,9 @@ class MaildirClient(Client):
         self._root = os.path.expanduser(cfg["maildir"])
         LOG.debug("maildir: %s", self._root)
         self._mbox_names = None
+        if 'search' in cfg['server']:
+            LOG.warning('Config "search" not used with a Maildir')
+            LOG.warning('All mails into the configured mailboxes will be parsed')
 
     @contextlib.contextmanager
     def _locked(self, mailbox_name):
