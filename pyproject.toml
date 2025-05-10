@@ -21,6 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Communications :: Email",
 ]
 
@@ -68,3 +69,17 @@ packages = ["imapautofiler"]
 
 [tool.hatch.build.hooks.vcs]
 version-file = "imapautofiler/version.py"
+
+[tool.hatch.envs.test]
+features = ["test"]
+dependencies = ["build", "twine", "check-python-versions"]
+[tool.hatch.envs.test.scripts]
+lint = "ruff check imapautofiler; ruff format --check imapautofiler"
+fix = "ruff format imapautofiler"
+test = "pytest --log-level DEBUG --cov=imapautofiler --cov-report term-missing"
+pkglint = "python -m build; twine check dist/*.tar.gz dist/*.whl; check-python-versions --only pyproject.toml,.github/workflows/test.yml"
+
+[tool.hatch.envs.docs]
+features = ["docs"]
+[tool.hatch.envs.docs.scripts]
+build = "python -m sphinx.cmd.build -E -W -v -T doc/source doc/build"
