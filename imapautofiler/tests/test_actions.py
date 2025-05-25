@@ -64,7 +64,10 @@ class TestMove(base.TestCase):
             {"name": "move", "dest-mailbox": "archive.{{ date.year }}"},
             {},
         )
-        dest_mailbox = m._get_dest_mailbox("id-here", self.without_offset_msg)
+        dest_mailbox = m._get_dest_mailbox(
+            message_id="id-here",
+            message=self.without_offset_msg,
+        )
         self.assertEqual(
             "archive.2000",
             dest_mailbox,
@@ -76,9 +79,17 @@ class TestMove(base.TestCase):
             {},
         )
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "msg-goes-here", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="msg-goes-here",
+            message_id="id-here",
+            message=self.msg,
         )
 
 
@@ -181,7 +192,10 @@ class TestSort(base.TestCase):
             },
             {},
         )
-        dest = m._get_dest_mailbox("id-here", self.without_offset_msg)
+        dest = m._get_dest_mailbox(
+            message_id="id-here",
+            message=self.without_offset_msg,
+        )
         self.assertEqual(
             "lists-go-under-here.2000.recipient1@example.com",
             dest,
@@ -193,9 +207,17 @@ class TestSort(base.TestCase):
             {},
         )
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "lists-go-under-here.recipient1", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="lists-go-under-here.recipient1",
+            message_id="id-here",
+            message=self.msg,
         )
 
 
@@ -291,12 +313,14 @@ class TestSortMailingList(base.TestCase):
         )
         self.msg["list-id"] = "<sphinx-dev.googlegroups.com>"
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn, mailbox_name="src-mailbox", message_id="id-here", message=self.msg
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox",
-            "lists-go-under-here.sphinx-dev.googlegroups.com",
-            "id-here",
-            self.msg,
+            src_mailbox="src-mailbox",
+            dest_mailbox="lists-go-under-here.sphinx-dev.googlegroups.com",
+            message_id="id-here",
+            message=self.msg,
         )
 
 
@@ -320,9 +344,14 @@ class TestSortByYear(base.TestCase):
         del self.msg["date"]
         self.msg["date"] = "Thu, 28 Dec 2023 13:47:53 -0600"
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn, mailbox_name="src-mailbox", message_id="id-here", message=self.msg
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "archive-under-here/2023", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="archive-under-here/2023",
+            message_id="id-here",
+            message=self.msg,
         )
 
     def test_invalid_date(self):
@@ -336,9 +365,17 @@ class TestSortByYear(base.TestCase):
         del self.msg["date"]
         self.msg["date"] = "there is no date in this string"
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="archive-under-here/unparsable-date",
+            message_id="id-here",
+            message=self.msg,
         )
 
     def test_no_date_header(self):
@@ -351,9 +388,17 @@ class TestSortByYear(base.TestCase):
         )
         del self.msg["date"]
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="archive-under-here/unparsable-date",
+            message_id="id-here",
+            message=self.msg,
         )
 
     def test_empty_date_header(self):
@@ -367,9 +412,17 @@ class TestSortByYear(base.TestCase):
         del self.msg["date"]
         self.msg["date"] = ""
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "archive-under-here/unparsable-date", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="archive-under-here/unparsable-date",
+            message_id="id-here",
+            message=self.msg,
         )
 
 
@@ -394,9 +447,17 @@ class TestTrash(base.TestCase):
             {"trash-mailbox": "to-the-trash"},
         )
         conn = mock.Mock()
-        m.invoke(conn, "src-mailbox", "id-here", self.msg)
+        m.invoke(
+            conn,
+            mailbox_name="src-mailbox",
+            message_id="id-here",
+            message=self.msg,
+        )
         conn.move_message.assert_called_once_with(
-            "src-mailbox", "to-the-trash", "id-here", self.msg
+            src_mailbox="src-mailbox",
+            dest_mailbox="to-the-trash",
+            message_id="id-here",
+            message=self.msg,
         )
 
 

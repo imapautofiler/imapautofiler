@@ -16,16 +16,11 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Communications :: Email",
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.13"
 
 dependencies = [
   "PyYAML>=3.11",
@@ -67,9 +62,13 @@ version-file = "imapautofiler/version.py"
 
 [tool.hatch.envs.test]
 features = ["test"]
-dependencies = ["twine", "check-python-versions"]
+dependencies = ["twine", "check-python-versions", "mypy", "types-PyYAML"]
 [tool.hatch.envs.test.scripts]
-lint = ["ruff check imapautofiler", "ruff format --check imapautofiler"]
+lint = [
+  "ruff check imapautofiler",
+  "ruff format --check imapautofiler",
+  "mypy -p imapautofiler",
+]
 fix = "ruff format imapautofiler"
 test = "pytest --log-level DEBUG --cov=imapautofiler --cov-report term-missing"
 pkglint = [
@@ -82,3 +81,15 @@ pkglint = [
 features = ["docs"]
 [tool.hatch.envs.docs.scripts]
 build = "python -m sphinx.cmd.build -E -W -v -T doc/source doc/build"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
+
+[tool.basedpyright]
+reportUnannotatedClassAttribute = false
+reportUnusedCallResult = false
+reportUntypedFunctionDecorator = false
+reportUnknownMemberType = false
+reportUnusedParameter = false
+reportAny = false
+reportImplicitOverride = false
