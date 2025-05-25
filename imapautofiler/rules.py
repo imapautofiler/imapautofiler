@@ -80,7 +80,6 @@ class Or(Rule):
             factory(rule_data=r, cfg=cfg) for r in rule_data["or"].get("rules", [])
         ]
 
-    @typing.override
     def check(self, message: email.message.Message) -> bool:
         if not self._sub_rules:
             self._log.debug("no sub-rules")
@@ -109,7 +108,6 @@ class And(Rule):
             factory(r, cfg) for r in rule_data["and"].get("rules", [])
         ]
 
-    @typing.override
     def check(self, message: email.message.Message) -> bool:
         if not self._sub_rules:
             self._log.debug("no sub-rules")
@@ -173,7 +171,6 @@ class Headers(Rule):
             else:
                 raise ValueError("unknown header matcher {!r}".format(header))
 
-    @typing.override
     def check(self, message: email.message.Message) -> bool:
         if not self._matchers:
             self._log.debug("no sub-rules")
@@ -181,7 +178,7 @@ class Headers(Rule):
         return all(m.check(message) for m in self._matchers)
 
 
-class _HeaderMatcher(Rule):
+class _HeaderMatcher(Rule, metaclass=abc.ABCMeta):
     _log: logging.Logger = logging.getLogger("header")
     NAME: str | None = None  # matchers cannot be used directly
 
@@ -196,7 +193,6 @@ class _HeaderMatcher(Rule):
     def _check_rule(self, header_value: str) -> bool:
         "run the rule-specific matching check"
 
-    @typing.override
     def check(self, message: email.message.Message) -> bool:
         header_value = i18n.get_header_value(message, self._header_name)
         return self._check_rule(header_value)
@@ -256,7 +252,6 @@ class HeaderExists(Rule):
         super().__init__(rule_data, cfg)
         self._header_name = rule_data["name"]
 
-    @typing.override
     def check(self, message):
         self._log.debug("%r exists", self._header_name)
         return self._header_name in message
@@ -289,7 +284,6 @@ class TimeLimit(Rule):
         super().__init__(rule_data, cfg)
         self._age = rule_data["time-limit"]["age"]
 
-    @typing.override
     def check(self, message):
         header_value = i18n.get_header_value(message, "date")
         try:
