@@ -14,6 +14,7 @@ Unreleased
   messages without a `Date` header or with a `Date` header that cannot be parsed
   are sorted into a special mailbox called `unparsable-date`.
 - Convert packaging from setuptools to hatch and hatchling.
+- Add type hints and mypy checking to linter.
 
 1.14.0
 ======

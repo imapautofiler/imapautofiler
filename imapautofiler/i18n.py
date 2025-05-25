@@ -11,8 +11,9 @@
 #    under the License.
 
 from email.header import decode_header, make_header
+import email.message
 
 
-def get_header_value(msg, name):
+def get_header_value(msg: email.message.Message, name: str) -> str:
     "Handle header decoding and return a string we examine."
     return str(make_header(decode_header(msg.get(name, ""))))
