@@ -51,11 +51,6 @@ repository = "https://github.com/imapautofiler/imapautofiler"
 [project.scripts]
 imapautofiler = "imapautofiler.app:main"
 
-[tool.setuptools]
-# Be explicit to avoid an error because build finds cover,
-# releasenotes, and imapautofiler as potential packages.
-packages = ["imapautofiler"]
-
 [tool.hatch]
 
 # https://pypi.org/project/hatch-vcs/
@@ -72,12 +67,16 @@ version-file = "imapautofiler/version.py"
 
 [tool.hatch.envs.test]
 features = ["test"]
-dependencies = ["build", "twine", "check-python-versions"]
+dependencies = ["twine", "check-python-versions"]
 [tool.hatch.envs.test.scripts]
-lint = "ruff check imapautofiler; ruff format --check imapautofiler"
+lint = ["ruff check imapautofiler", "ruff format --check imapautofiler"]
 fix = "ruff format imapautofiler"
 test = "pytest --log-level DEBUG --cov=imapautofiler --cov-report term-missing"
-pkglint = "python -m build; twine check dist/*.tar.gz dist/*.whl; check-python-versions --only pyproject.toml,.github/workflows/test.yml"
+pkglint = [
+  "hatch build",
+  "twine check dist/*.tar.gz dist/*.whl",
+  "check-python-versions --only pyproject.toml,.github/workflows/test.yml",
+]
 
 [tool.hatch.envs.docs]
 features = ["docs"]
