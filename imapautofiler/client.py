@@ -13,12 +13,15 @@
 """Mail client API."""
 
 import abc
+import collections.abc
 import contextlib
+import email.message
 import email.parser
 import logging
 import mailbox
 import os
 import ssl
+import typing
 
 import imapclient
 
@@ -28,7 +31,7 @@ from .config import tobool
 LOG = logging.getLogger("imapautofiler.client")
 
 
-def open_connection(cfg):
+def open_connection(cfg: dict[str, typing.Any]) -> "Client":
     "Open a connection to the mail server."
     if "server" in cfg:
         return IMAPClient(cfg)
@@ -38,22 +41,30 @@ def open_connection(cfg):
 
 
 class Client(metaclass=abc.ABCMeta):
-    def __init__(self, cfg):
-        self._cfg = cfg
+    def __init__(self, cfg: dict[str, typing.Any]) -> None:
+        self._cfg: dict[str, typing.Any] = cfg
 
     @abc.abstractmethod
-    def list_mailboxes(self):
+    def list_mailboxes(self) -> collections.abc.Iterator[str]:
         "Return a list of mailbox names."
 
     @abc.abstractmethod
-    def mailbox_iterate(self, mailbox_name):
+    def mailbox_iterate(
+        self, mailbox_name: str
+    ) -> collections.abc.Iterator[tuple[str, email.message.Message]]:
         """Iterate over messages from the mailbox.
 
         Produces tuples of (message_id, message).
         """
 
     @abc.abstractmethod
-    def set_flagged(self, src_mailbox, message_id, message, is_flagged):
+    def set_flagged(
+        self,
+        src_mailbox: str,
+        message_id: str,
+        message: email.message.Message,
+        is_flagged: bool,
+    ) -> None:
         """Manage the "flagged" flag for the message.
 
         If is_flagged is True, ensure the message is
@@ -69,7 +80,13 @@ class Client(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def set_read(self, src_mailbox, message_id, message, is_read):
+    def set_read(
+        self,
+        src_mailbox: str,
+        message_id: str,
+        message: email.message.Message,
+        is_read: bool,
+    ) -> None:
         """Manage the "read" flag for the message.
 
         If is_read is True, ensure the message is
@@ -85,7 +102,13 @@ class Client(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def copy_message(self, src_mailbox, dest_mailbox, message_id, message):
+    def copy_message(
+        self,
+        src_mailbox: str,
+        dest_mailbox: str,
+        message_id: str,
+        message: email.message.Message,
+    ) -> None:
         """Create a copy of the message in the destination mailbox.
 
         :param src_mailbox: name of the source mailbox
@@ -99,7 +122,13 @@ class Client(metaclass=abc.ABCMeta):
 
         """
 
-    def move_message(self, src_mailbox, dest_mailbox, message_id, message):
+    def move_message(
+        self,
+        src_mailbox: str,
+        dest_mailbox: str,
+        message_id: str,
+        message: email.message.Message,
+    ) -> None:
         """Move the message from the source to the destination mailbox.
 
         :param src_mailbox: name of the source mailbox
@@ -125,7 +154,12 @@ class Client(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def delete_message(self, src_mailbox, message_id, message):
+    def delete_message(
+        self,
+        src_mailbox: str,
+        message_id: str,
+        message: email.message.Message,
+    ) -> None:
         """Remove the message.
 
         :param src_mailbox: name of the source mailbox
@@ -138,16 +172,16 @@ class Client(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def expunge(self):
+    def expunge(self) -> None:
         "Flush any pending changes."
 
     @abc.abstractmethod
-    def close(self):
+    def close(self) -> None:
         "Close the connection, flushing any pending changes."
 
 
 class IMAPClient(Client):
-    def __init__(self, cfg):
+    def __init__(self, cfg: dict[str, typing.Any]) -> None:
         super().__init__(cfg)
 
         # Use default client behavior if ca_file not provided.
@@ -162,7 +196,7 @@ class IMAPClient(Client):
             context.verify_mode = ssl.CERT_REQUIRED
             context.check_hostname = tobool(cfg["server"]["check_hostname"])
 
-        use_ssl = True
+        use_ssl: bool = True
         if "ssl" in cfg["server"]:
             use_ssl = tobool(cfg["server"]["ssl"])
 
@@ -174,18 +208,20 @@ class IMAPClient(Client):
             ssl_context=context,
         )
         username = cfg["server"]["username"]
-        password = secrets.get_password(cfg)
+        password: str | typing.Any | None = secrets.get_password(cfg)
         self._conn.login(username, password)
-        self._mbox_names = None
+        self._mbox_names: set[str] | None = None
         self.search = cfg['server'].get('search', 'ALL')
-
-    def list_mailboxes(self):
+	
+    def list_mailboxes(self) -> collections.abc.Iterator[str]:
         "Return a list of folder names."
         return (f[-1] for f in self._conn.list_folders())
 
-    def mailbox_iterate(self, mailbox_name):
+    def mailbox_iterate(
+        self, mailbox_name: str
+    ) -> collections.abc.Iterator[tuple[str, email.message.Message]]:
         self._conn.select_folder(mailbox_name)
-        msg_ids = self._conn.search(self.search)
+        msg_ids: list[str] = self._conn.search(self.search)
         for msg_id in msg_ids:
             email_parser = email.parser.BytesFeedParser()
             response = self._conn.fetch([msg_id], ["BODY.PEEK[HEADER]"])

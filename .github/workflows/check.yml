@@ -11,10 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tox-environment:
-          - docs
-          - linter
-          - pkglint
+        hatch-environment:
+          - "docs:build"
+          - "test:lint"
+          - "test:pkglint"
 
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-python@v5
 
       - name: Install dependencies
-        run: python -m pip install tox
+        run: python -m pip install hatch
 
       - name: Run
-        run: tox -e ${{ matrix.tox-environment }}
+        run: hatch run ${{ matrix.hatch-environment }}

@@ -12,13 +12,14 @@
 
 import logging
 import os.path
+import typing
 
 import yaml
 
-LOG = logging.getLogger(__name__)
+LOG: logging.Logger = logging.getLogger(__name__)
 
 
-def get_config(filename):
+def get_config(filename: str) -> dict[str, typing.Any] | None:
     """Return the configuration data.
 
     :param filename: name of configuration file to read
@@ -28,13 +29,14 @@ def get_config(filename):
     results.
 
     """
-    filename = os.path.expanduser(filename)
-    LOG.debug("loading config from %s", filename)
-    with open(filename, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    full_filename: str = os.path.expanduser(filename)
+    LOG.debug("loading config from %s", full_filename)
+    with open(full_filename, mode="r", encoding="utf-8") as f:
+        # TODO(dhellmann): Add type checking to the YAML parser.
+        return yaml.safe_load(stream=f)
 
 
-def tobool(value):
+def tobool(value: str | bool) -> bool:
     """Convert config option value to boolean."""
     if isinstance(value, bool):
         return value
