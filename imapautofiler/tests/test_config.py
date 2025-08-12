@@ -42,7 +42,7 @@ class TestConfig(BaseConfigTest):
         m = self._get_mock_open("")
         with mock.patch("imapautofiler.config.open", m):
             self.assertEqual(get_config("dummy"), None)
-            m.assert_called_once_with("dummy", "r", encoding="utf-8")
+            m.assert_called_once_with("dummy", mode="r", encoding="utf-8")
 
     def test_config_server(self):
         self.assertTrue(isinstance(self.cfg, dict))

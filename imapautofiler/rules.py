@@ -11,8 +11,10 @@
 #    under the License.
 
 import abc
+import email.message
 import logging
 import re
+import typing
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
@@ -22,11 +24,13 @@ from imapautofiler import i18n, lookup
 class Rule(metaclass=abc.ABCMeta):
     "Base class"
 
-    _log = logging.getLogger(__name__)
+    _log: logging.Logger = logging.getLogger(__name__)
 
-    NAME = None
+    NAME: str | None = None
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         """Initialize the rule.
 
         :param rule_data: data describing the rule
@@ -40,7 +44,7 @@ class Rule(metaclass=abc.ABCMeta):
         self._cfg = cfg
 
     @abc.abstractmethod
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         """Test the rule on the message.
 
         :param conn: connection to IMAP server
@@ -51,7 +55,7 @@ class Rule(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def get_action(self):
+    def get_action(self) -> dict[str, typing.Any]:
         return self._data.get("action", {})
 
 
@@ -66,13 +70,17 @@ class Or(Rule):
     """
 
     NAME = "or"
-    _log = logging.getLogger(NAME)
+    _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
-        self._sub_rules = [factory(r, cfg) for r in rule_data["or"].get("rules", [])]
+        self._sub_rules: list[Rule] = [
+            factory(rule_data=r, cfg=cfg) for r in rule_data["or"].get("rules", [])
+        ]
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         if not self._sub_rules:
             self._log.debug("no sub-rules")
             return False
@@ -90,13 +98,17 @@ class And(Rule):
     """
 
     NAME = "and"
-    _log = logging.getLogger(NAME)
+    _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
-        self._sub_rules = [factory(r, cfg) for r in rule_data["and"].get("rules", [])]
+        self._sub_rules: list[Rule] = [
+            factory(r, cfg) for r in rule_data["and"].get("rules", [])
+        ]
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         if not self._sub_rules:
             self._log.debug("no sub-rules")
             return False
@@ -113,12 +125,14 @@ class Recipient(Or):
     """
 
     NAME = "recipient"
-    _log = logging.getLogger(NAME)
+    _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
-        rules = []
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
+        rules: list[dict[str, typing.Any]] = []
         for header in ["to", "cc"]:
-            header_data = {}
+            header_data: dict[str, typing.Any] = {}
             header_data.update(rule_data["recipient"])
             header_data["name"] = header
             rules.append({"headers": [header_data]})
@@ -140,11 +154,13 @@ class Headers(Rule):
     """
 
     NAME = "headers"
-    _log = logging.getLogger(NAME)
+    _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
-        self._matchers = []
+        self._matchers: list[Rule] = []
         for header in rule_data.get("headers", []):
             if "substring" in header:
                 self._matchers.append(HeaderSubString(header, cfg))
@@ -155,35 +171,39 @@ class Headers(Rule):
             else:
                 raise ValueError("unknown header matcher {!r}".format(header))
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         if not self._matchers:
             self._log.debug("no sub-rules")
             return False
         return all(m.check(message) for m in self._matchers)
 
 
-class _HeaderMatcher(Rule):
-    _log = logging.getLogger("header")
-    NAME = None  # matchers cannot be used directly
+class _HeaderMatcher(Rule, metaclass=abc.ABCMeta):
+    _log: logging.Logger = logging.getLogger("header")
+    NAME: str | None = None  # matchers cannot be used directly
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._header_name = rule_data["name"]
         self._value = rule_data.get("value", "").lower()
 
     @abc.abstractmethod
-    def _check_rule(self, header_value):
+    def _check_rule(self, header_value: str) -> bool:
         "run the rule-specific matching check"
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         header_value = i18n.get_header_value(message, self._header_name)
         return self._check_rule(header_value)
 
 
 class HeaderExactValue(_HeaderMatcher):
-    _log = logging.getLogger("header-exact-value")
+    _log: logging.Logger = logging.getLogger("header-exact-value")
 
-    def __init__(self, rule_data, cfg):
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._header_name = rule_data["name"]
         self._value = rule_data.get("value", "").lower()
