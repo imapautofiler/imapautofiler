@@ -117,7 +117,8 @@ The most commun values are: ``ALL``, ``UNSEEN``, ``ANSWERED``.
 .. _rfc3501 : https://datatracker.ietf.org/doc/html/rfc3501.html#section-6.4.4
 
 .. code-block:: yaml
-  server:
+
+server:
     hostname: imap.example.com
     username: my-user@example.com
     search: UNSEEN
