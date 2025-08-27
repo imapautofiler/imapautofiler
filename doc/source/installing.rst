@@ -34,7 +34,7 @@ If you are using a virtualenv, you may also need to install
 
 .. _pip: https://pypi.python.org/pypi/pip
 
- Docker
+Docker
 ============
 
 The docker image allow to run the script with the config as mount volume.
@@ -55,6 +55,7 @@ the file path.
 Here is an example how to build and run the image in dry-run mode:
 
 .. code-block:: shell
+
     $ git clone https://github.com/imapautofiler/imapautofiler
     $ docker build -t local-imapautofiler -f ./imapautofiler/contrib/Dockerfile ./imapautofiler
     $ docker run -it -e "DRYRUN=true" -v "./imap-config:/app/config.d" --rm local-imapautofiler
