@@ -155,18 +155,19 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
-        conn = client.open_connection(cfg)
-        try:
-            if args.list_mailboxes:
-                list_mailboxes(cfg, args.debug, conn)
-            else:
-                process_rules(cfg, args.debug, conn, args.dry_run)
-        finally:
-            conn.close()
     except Exception as err:
-        if args.debug:
-            raise
         parser.error(err)
+        return -1
+
+    conn = client.open_connection(cfg)
+    try:
+        if args.list_mailboxes:
+            list_mailboxes(cfg, args.debug, conn)
+        else:
+            process_rules(cfg, args.debug, conn, args.dry_run)
+    finally:
+        conn.close()
+
     return 0
 
 
