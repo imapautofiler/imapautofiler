@@ -93,6 +93,10 @@ class ProgressTracker:
         self._start_time: Optional[float] = None
         self._interrupted: bool = False
         self._original_sigint_handler: Optional[signal.Handlers] = None
+        
+        # Recent actions tracking (most recent first)
+        self._recent_actions: list[str] = []
+        self._max_actions = self._calculate_max_actions()  # Dynamic based on terminal height
 
         if self.interactive:
             self._console = Console()
@@ -119,7 +123,23 @@ class ProgressTracker:
                 Layout(name="progress", size=4),
                 Layout(name="stats", size=11),
                 Layout(name="current", size=5),
+                Layout(name="actions"),  # Dynamic size - takes remaining space
             )
+
+    def _calculate_max_actions(self) -> int:
+        """Calculate maximum actions to display based on terminal height."""
+        if not RICH_AVAILABLE:
+            return 10  # Default fallback
+        
+        try:
+            console = Console()
+            terminal_height = console.size.height
+            # Reserve space for: progress (4) + stats (11) + current (5) + borders/padding (~5) = 25
+            # Use remaining space for actions, with minimum of 5 and maximum of 20
+            available_height = terminal_height - 25
+            return max(5, min(20, available_height))
+        except Exception:
+            return 10  # Fallback if size detection fails
 
     def _handle_interrupt(self, signum: int, frame) -> None:
         """Handle Ctrl+C interruption gracefully."""
@@ -306,11 +326,39 @@ class ProgressTracker:
             border_style=Colors.PANEL_BORDER,
         )
 
+    def _create_actions_panel(self) -> "Panel":
+        """Create the recent actions panel."""
+        if not self._recent_actions:
+            content = Text("⏳ No actions taken yet...", style="dim")
+        else:
+            lines = []
+            for i, action in enumerate(self._recent_actions):
+                # Add timestamp-style prefix and action
+                icon = "✓" if i == 0 else "•"  # Recent action gets checkmark, others get bullets
+                style = "green" if i == 0 else ""  # Highlight most recent
+                # Truncate very long action messages to fit panel width
+                truncated_action = action[:80] + "..." if len(action) > 80 else action
+                lines.append(Text(f"{icon} {truncated_action}", style=style))
+            
+            # Combine all lines
+            content = Text()
+            for i, line in enumerate(lines):
+                if i > 0:
+                    content.append("\n")
+                content.append_text(line)
+
+        return Panel(
+            content,
+            title=f"[{Colors.PANEL_TITLE}]Recent Actions",
+            border_style=Colors.PANEL_BORDER,
+        )
+
     def _update_layout(self) -> None:
         """Update the layout with current data."""
         if self._layout:
             self._layout["stats"].update(self._create_stats_panel())
             self._layout["current"].update(self._create_current_panel())
+            self._layout["actions"].update(self._create_actions_panel())
 
     def start_overall(self, total_mailboxes: int) -> None:
         """Start tracking overall mailbox progress."""
@@ -357,7 +405,7 @@ class ProgressTracker:
         self._update_layout()
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = ""
+        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = "", action_message: str = ""
     ) -> None:
         """Update progress for processed messages."""
         if subject:
@@ -370,6 +418,12 @@ class ProgressTracker:
         # Always increment seen count when advancing (regardless of action)
         if advance > 0:
             self._stats["seen"] += advance
+
+        # Add action message to recent actions list
+        if action_message:
+            self._recent_actions.insert(0, action_message)  # Add to front (most recent)
+            # Keep only the most recent actions
+            self._recent_actions = self._recent_actions[:self._max_actions]
 
         if action:
             # Update statistics based on action
@@ -459,7 +513,7 @@ class NullProgressTracker:
         pass
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = ""
+        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = "", action_message: str = ""
     ) -> None:
         pass
 

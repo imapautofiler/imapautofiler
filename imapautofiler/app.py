@@ -102,7 +102,9 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
                     try:
-                        action.report(conn, mailbox_name, msg_id, message)
+                        action_message = action.report(conn, mailbox_name, msg_id, message)
+                        LOG.info(action_message)  # Log the action message
+                        
                         if not dry_run:
                             action.invoke(conn, mailbox_name, msg_id, message)
 
@@ -115,8 +117,8 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                             elif "flag" in action_name:
                                 action_type = "flag"
 
-                        # Update progress with action taken
-                        progress_tracker.update_message(advance=1, action=action_type)
+                        # Update progress with action taken and action message
+                        progress_tracker.update_message(advance=1, action=action_type, action_message=action_message)
                         action_taken = True
 
                     except Exception as err:
