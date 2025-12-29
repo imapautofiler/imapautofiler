@@ -218,7 +218,9 @@ class HeaderSubString(_HeaderMatcher):
 
     _log = logging.getLogger("header-substring")
 
-    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._value = rule_data.get("substring", "").lower()
 
@@ -232,7 +234,9 @@ class HeaderRegex(_HeaderMatcher):
 
     _log = logging.getLogger("header-regex")
 
-    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._value = rule_data.get("regex", "")
         self._regex = re.compile(self._value)
@@ -248,7 +252,9 @@ class HeaderExists(Rule):
     NAME = "header-exists"
     _log = logging.getLogger(NAME)
 
-    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._header_name = rule_data["name"]
 
@@ -263,7 +269,9 @@ class IsMailingList(HeaderExists):
     NAME = "is-mailing-list"
     _log = logging.getLogger(NAME)
 
-    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
+    def __init__(
+        self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         if "name" not in rule_data:
             rule_data["name"] = "list-id"
         super().__init__(rule_data, cfg)

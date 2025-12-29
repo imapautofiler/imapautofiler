@@ -44,7 +44,9 @@ class AskPassword:
         return getpass.getpass("Password for {}:".format(self.username))
 
 
-def configure_providers(cfg: dict[str, typing.Any]) -> Iterator[FixedPasswordSecret | KeyringPasswordSecret | AskPassword]:
+def configure_providers(
+    cfg: dict[str, typing.Any],
+) -> Iterator[FixedPasswordSecret | KeyringPasswordSecret | AskPassword]:
     # First, we'll try for the in-config one. It's not recommended, but someone
     # may have set it.
     try:
