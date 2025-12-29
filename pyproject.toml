@@ -63,7 +63,7 @@ version-file = "imapautofiler/version.py"
 
 [tool.hatch.envs.test]
 features = ["test"]
-dependencies = ["check-python-versions", "mypy", "types-PyYAML", "pre-commit"]
+dependencies = ["check-python-versions", "mypy==1.19.1", "types-PyYAML", "pre-commit", "ruff==0.14.10"]
 [tool.hatch.envs.test.scripts]
 lint = [
   "ruff check imapautofiler",
@@ -84,6 +84,7 @@ build = "python -m sphinx.cmd.build -E -W -v -T doc/source doc/build"
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
+disallow_untyped_defs = true
 
 [tool.basedpyright]
 reportUnannotatedClassAttribute = false

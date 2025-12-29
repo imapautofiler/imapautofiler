@@ -1,5 +1,7 @@
 import logging
 import getpass
+import typing
+from typing import Iterator
 
 import keyring
 
@@ -7,19 +9,19 @@ LOG = logging.getLogger("imapautofiler.client")
 
 
 class FixedPasswordSecret:
-    def __init__(self, password):
+    def __init__(self, password: str) -> None:
         self.password = password
 
-    def get_password(self):
+    def get_password(self) -> str:
         return self.password
 
 
 class KeyringPasswordSecret:
-    def __init__(self, hostname, username):
+    def __init__(self, hostname: str, username: str) -> None:
         self.hostname = hostname
         self.username = username
 
-    def get_password(self):
+    def get_password(self) -> str | None:
         password = keyring.get_password(self.hostname, self.username)
         if not password:
             LOG.debug("No keyring password; getting one interactively")
@@ -34,15 +36,17 @@ class KeyringPasswordSecret:
 
 
 class AskPassword:
-    def __init__(self, hostname, username):
+    def __init__(self, hostname: str, username: str) -> None:
         self.hostname = hostname
         self.username = username
 
-    def get_password(self):
+    def get_password(self) -> str:
         return getpass.getpass("Password for {}:".format(self.username))
 
 
-def configure_providers(cfg):
+def configure_providers(
+    cfg: dict[str, typing.Any],
+) -> Iterator[FixedPasswordSecret | KeyringPasswordSecret | AskPassword]:
     # First, we'll try for the in-config one. It's not recommended, but someone
     # may have set it.
     try:
@@ -73,8 +77,9 @@ def configure_providers(cfg):
         )
 
 
-def get_password(cfg):
+def get_password(cfg: dict[str, typing.Any]) -> str | None:
     for provider in configure_providers(cfg):
         password = provider.get_password()
         if password:
             return password
+    return None

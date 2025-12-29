@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import typing
 import unittest
 import unittest.mock as mock
 
@@ -28,24 +29,25 @@ server:
 
 
 class BaseConfigTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         m = self._get_mock_open(CONFIG)
         with mock.patch("imapautofiler.config.open", m):
-            self.cfg = get_config("dummy")
+            self.cfg: dict[str, typing.Any] | None = get_config("dummy")
 
-    def _get_mock_open(self, data):
+    def _get_mock_open(self, data: str) -> mock.MagicMock:
         return mock.mock_open(read_data=data)
 
 
 class TestConfig(BaseConfigTest):
-    def test_get_config_empty(self):
+    def test_get_config_empty(self) -> None:
         m = self._get_mock_open("")
         with mock.patch("imapautofiler.config.open", m):
             self.assertEqual(get_config("dummy"), None)
             m.assert_called_once_with("dummy", mode="r", encoding="utf-8")
 
-    def test_config_server(self):
+    def test_config_server(self) -> None:
         self.assertTrue(isinstance(self.cfg, dict))
+        assert self.cfg is not None
         self.assertTrue("server" in self.cfg)
         self.assertTrue(isinstance(self.cfg["server"], dict))
         self.assertEqual(self.cfg["server"]["hostname"], "example.com")
@@ -55,21 +57,23 @@ class TestConfig(BaseConfigTest):
         self.assertEqual(self.cfg["server"]["ca_file"], "path/to/ca_file.pem")
         self.assertTrue(self.cfg["server"]["check_hostname"])
 
-    def test_check_hostname(self):
+    def test_check_hostname(self) -> None:
         for val in ("y", "yes", "t", "true", "on", "enabled", "1"):
             with self.subTest(val=val):
                 m = self._get_mock_open("server:\n check_hostname: %s" % val)
                 with mock.patch("imapautofiler.config.open", m):
                     cfg = get_config("dummy")
+                    assert cfg is not None
                     self.assertTrue(tobool(cfg["server"]["check_hostname"]))
 
             with self.subTest(val='"%s"' % val):
                 m = self._get_mock_open('server:\n check_hostname: "%s"' % val)
                 with mock.patch("imapautofiler.config.open", m):
                     cfg = get_config("dummy")
+                    assert cfg is not None
                     self.assertTrue(tobool(cfg["server"]["check_hostname"]))
 
-    def test_tobool(self):
+    def test_tobool(self) -> None:
         for val in (
             True,
             1,
@@ -88,7 +92,7 @@ class TestConfig(BaseConfigTest):
             "Enabled",
         ):
             with self.subTest(val=val):
-                self.assertTrue(tobool(val))
+                self.assertTrue(tobool(typing.cast(str | bool, val)))
 
         for val in (
             False,
@@ -106,15 +110,16 @@ class TestConfig(BaseConfigTest):
             "",
         ):
             with self.subTest(val=val):
-                self.assertFalse(tobool(val))
+                self.assertFalse(tobool(typing.cast(str | bool, val)))
 
 
 class TestServerConfig(BaseConfigTest):
-    def test_imapclient_config(self):
+    def test_imapclient_config(self) -> None:
         context = mock.Mock()
         context_maker = mock.Mock(return_value=context)
         with mock.patch("ssl.create_default_context", context_maker):
             with mock.patch("imapclient.IMAPClient") as clientclass:
+                assert self.cfg is not None
                 IMAPClient(self.cfg)
                 clientclass.assert_called_once_with(
                     "example.com",
