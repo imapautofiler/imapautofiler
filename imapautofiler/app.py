@@ -190,29 +190,22 @@ def main(args=None):
         help="suppress logs, show only progress",
     )
     parser.add_argument(
-        "--progress",
+        "--no-interactive",
         default=False,
         action="store_true",
-        help="show progress bars (subset of interactive mode)",
-    )
-    parser.add_argument(
-        "--no-progress",
-        default=False,
-        action="store_true",
-        help="disable progress bars and interactive mode",
+        help="disable interactive progress displays",
     )
     args = parser.parse_args()
 
     if args.debug:
         imaplib.Debug = 4  # type: ignore[attr-defined]
 
-    # Determine if we should show progress first
+    # Determine if we should show interactive progress
     # Default to showing progress when rich is available unless explicitly disabled
     show_progress = (
-        not args.no_progress  # Respect explicit disable flag
+        not args.no_interactive  # Respect explicit disable flag
         and (
             args.interactive
-            or args.progress
             or (
                 not args.verbose
                 and not args.debug
@@ -224,9 +217,9 @@ def main(args=None):
 
     # Handle quiet mode and logging configuration
     # When showing interactive progress, suppress info logs to avoid interfering
-    # But --no-progress should preserve normal log level
+    # But --no-interactive should preserve normal log level
     if args.quiet or (
-        show_progress and not args.verbose and not args.debug and not args.no_progress
+        show_progress and not args.verbose and not args.debug and not args.no_interactive
     ):
         log_level = logging.WARNING  # Suppress info logs when showing progress
     elif args.verbose or args.debug:
