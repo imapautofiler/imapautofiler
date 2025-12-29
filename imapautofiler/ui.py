@@ -13,7 +13,9 @@
 """User interface components for interactive mode."""
 
 import logging
+import signal
 import sys
+import time
 from typing import Optional
 
 try:
@@ -48,6 +50,7 @@ class Colors:
     PROGRESS_TEXT = "green"
     METRIC_LABEL = "red"
     ERROR_VALUE = "red"
+    INTERRUPT_TEXT = "bold red"
     # All other text uses default terminal color for adaptability
 
 
@@ -86,6 +89,9 @@ class ProgressTracker:
         self._current_from: str = ""
         self._current_to: str = ""
         self._current_mailbox: str = ""
+        self._start_time: Optional[float] = None
+        self._interrupted: bool = False
+        self._original_sigint_handler: Optional[signal.Handlers] = None
 
         if self.interactive:
             self._console = Console()
@@ -114,8 +120,20 @@ class ProgressTracker:
                 Layout(name="current", size=5),
             )
 
+    def _handle_interrupt(self, signum: int, frame) -> None:
+        """Handle Ctrl+C interruption gracefully."""
+        self._interrupted = True
+        if self.interactive and self._console:
+            self._console.print(f"\n\n⚠️  [{Colors.INTERRUPT_TEXT}]Interrupt received[/]. Processing will stop after current message...\n")
+
     def start(self) -> None:
         """Start the progress tracking."""
+        self._start_time = time.time()
+        
+        # Set up interrupt handler for graceful shutdown
+        if self.interactive:
+            self._original_sigint_handler = signal.signal(signal.SIGINT, self._handle_interrupt)
+        
         if self._progress and self._layout:
             # Wrap progress in a panel with border
             progress_panel = Panel(
@@ -140,6 +158,10 @@ class ProgressTracker:
 
     def stop(self) -> None:
         """Stop the progress tracking."""
+        # Restore original signal handler
+        if self._original_sigint_handler is not None:
+            signal.signal(signal.SIGINT, self._original_sigint_handler)
+            
         if self._live:
             self._live.stop()
         if self._progress:
@@ -152,18 +174,36 @@ class ProgressTracker:
     def _show_final_summary(self) -> None:
         """Display final processing summary after interactive mode ends."""
         self._console.print("\n")
-        self._console.print(f"[{Colors.PANEL_TITLE}]Processing Complete[/] 🎉\n")
+        
+        # Show different title based on completion status
+        if self._interrupted:
+            self._console.print(f"[{Colors.INTERRUPT_TEXT}]Processing Interrupted[/] ⚠️\n")
+        else:
+            self._console.print(f"[{Colors.PANEL_TITLE}]Processing Complete[/] 🎉\n")
 
         # Create summary table
-        summary_table = Table(title="Final Summary", box=None, show_header=False)
+        title = "Final Summary" if not self._interrupted else "Progress Summary"
+        summary_table = Table(title=title, box=None, show_header=False)
         summary_table.add_column("Metric", style=Colors.METRIC_LABEL, width=15)
         summary_table.add_column("Count", justify="right", width=10)
+
+        # Show timing information
+        if self._start_time is not None:
+            elapsed = time.time() - self._start_time
+            if elapsed >= 60:
+                time_str = f"{elapsed/60:.1f}m"
+            else:
+                time_str = f"{elapsed:.1f}s"
+            summary_table.add_row("Runtime:", time_str)
 
         # Show mailbox completion
         if "total_mailboxes_overall" in self._stats:
             completed = self._stats.get("completed_mailboxes", 0)
             total = self._stats["total_mailboxes_overall"]
-            summary_table.add_row("Mailboxes:", f"{completed}/{total}")
+            if self._interrupted and completed < total:
+                summary_table.add_row("Mailboxes:", f"[{Colors.INTERRUPT_TEXT}]{completed}/{total}[/]")
+            else:
+                summary_table.add_row("Mailboxes:", f"{completed}/{total}")
 
         # Show message statistics
         summary_table.add_row("Messages:", str(self._stats["total_messages"]))
@@ -181,6 +221,11 @@ class ProgressTracker:
             summary_table.add_row("Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]")
 
         self._console.print(summary_table)
+        
+        # Show additional context for interruptions
+        if self._interrupted:
+            self._console.print(f"\n[dim]💡 Run again to continue processing remaining mailboxes[/]")
+        
         self._console.print()
 
     def _create_stats_panel(self) -> "Panel":
@@ -351,6 +396,10 @@ class ProgressTracker:
         self._current_to = ""
         self._update_layout()
 
+    def is_interrupted(self) -> bool:
+        """Check if processing has been interrupted by user."""
+        return self._interrupted
+
     def print(self, message: str) -> None:
         """Print a message, handling rich console if available."""
         if self._console and self._live:
@@ -409,6 +458,10 @@ class NullProgressTracker:
 
     def finish_mailbox(self) -> None:
         pass
+
+    def is_interrupted(self) -> bool:
+        """Check if processing has been interrupted by user."""
+        return False
 
     def print(self, message: str) -> None:
         print(message)

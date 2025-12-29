@@ -16,6 +16,7 @@ import argparse
 import imaplib
 import logging
 import sys
+from typing import Union
 
 from imapautofiler import actions, client, config, rules, ui, i18n
 
@@ -54,10 +55,19 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
     num_processed = 0
     num_errors = 0
 
+    # Provide a default progress tracker if none given
+    if progress_tracker is None:
+        progress_tracker = ui.NullProgressTracker()
+
     # Start overall progress tracking
     progress_tracker.start_overall(len(cfg["mailboxes"]))
 
     for mailbox in cfg["mailboxes"]:
+        # Check for interruption before starting each mailbox
+        if progress_tracker.is_interrupted():
+            LOG.info("Processing interrupted by user, stopping")
+            break
+            
         mailbox_name = mailbox["name"]
         LOG.info("starting mailbox %r", mailbox_name)
 
@@ -69,6 +79,11 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
         progress_tracker.start_mailbox(mailbox_name, len(mailbox_iter))
 
         for msg_id, message in mailbox_iter:
+            # Check for interruption at the start of each message
+            if progress_tracker.is_interrupted():
+                LOG.info("Processing interrupted by user")
+                break
+                
             num_messages += 1
             subject = i18n.get_header_value(message, "subject") or "No Subject"
             from_addr = i18n.get_header_value(message, "from") or ""
