@@ -10,15 +10,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import typing
+from typing import Iterator
 
-def _all_subclasses(cls):
+
+def _all_subclasses(cls: type[typing.Any]) -> Iterator[type[typing.Any]]:
     direct = cls.__subclasses__()
     yield from direct
     for d in direct:
         yield from _all_subclasses(d)
 
 
-def make_lookup_table(cls, attr_name):
+def make_lookup_table(cls: type[typing.Any], attr_name: str) -> dict[typing.Any, type[typing.Any]]:
     table = {
         getattr(subcls, attr_name, None): subcls
         for subcls in _all_subclasses(cls)
