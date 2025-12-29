@@ -16,6 +16,7 @@ import logging
 import signal
 import sys
 import time
+import types
 from typing import Optional, Any, Callable, Union
 
 from rich.console import Console
@@ -132,7 +133,7 @@ class ProgressTracker:
         except Exception:
             return 10  # Fallback if size detection fails
 
-    def _handle_interrupt(self, signum: int, frame) -> None:
+    def _handle_interrupt(self, signum: int, frame: types.FrameType | None) -> None:
         """Handle Ctrl+C interruption gracefully."""
         self._interrupted = True
         if self.interactive and self._console:
@@ -490,7 +491,12 @@ class ProgressTracker:
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         """Context manager exit."""
         self.stop()
 
@@ -551,7 +557,12 @@ class NullProgressTracker:
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         self.stop()
 
 

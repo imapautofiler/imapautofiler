@@ -16,13 +16,16 @@ import argparse
 import imaplib
 import logging
 import sys
+import typing
 
 from imapautofiler import actions, client, config, rules, ui, i18n
 
 LOG = logging.getLogger("imapautofiler")
 
 
-def list_mailboxes(cfg, debug, conn):
+def list_mailboxes(
+    cfg: dict[str, typing.Any], debug: bool, conn: client.Client
+) -> None:
     """Print a list of the mailboxes.
 
     :param cfg: full configuration
@@ -39,7 +42,13 @@ def list_mailboxes(cfg, debug, conn):
         print(f)
 
 
-def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
+def process_rules(
+    cfg: dict[str, typing.Any],
+    debug: bool,
+    conn: client.Client,
+    dry_run: bool = False,
+    progress_tracker: ui.ProgressTracker | ui.NullProgressTracker | None = None,
+) -> None:
     """Run the rules from the configuration file.
 
     :param cfg: full configuration
@@ -164,7 +173,7 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
     return
 
 
-def main(args=None):
+def main(args: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
@@ -217,24 +226,24 @@ def main(args=None):
         action="store_true",
         help="disable interactive progress displays",
     )
-    args = parser.parse_args()
+    parsed_args = parser.parse_args(args)
 
-    if args.debug:
+    if parsed_args.debug:
         imaplib.Debug = 4  # type: ignore[attr-defined]
 
     # Determine if we should show interactive progress using enhanced auto-detection
     show_progress = ui.should_use_progress(
-        interactive_requested=args.interactive,
-        no_interactive_requested=args.no_interactive
-        or args.quiet,  # quiet disables interactive
-        verbose=args.verbose,
-        debug=args.debug,
+        interactive_requested=parsed_args.interactive,
+        no_interactive_requested=parsed_args.no_interactive
+        or parsed_args.quiet,  # quiet disables interactive
+        verbose=parsed_args.verbose,
+        debug=parsed_args.debug,
     )
 
     # Handle quiet mode and logging configuration
-    if args.quiet:
+    if parsed_args.quiet:
         log_level = logging.WARNING  # Quiet mode shows warnings and above
-    elif args.verbose or args.debug:
+    elif parsed_args.verbose or parsed_args.debug:
         log_level = logging.DEBUG
     elif show_progress:
         log_level = (
@@ -250,24 +259,29 @@ def main(args=None):
     logging.debug("starting")
 
     try:
-        cfg = config.get_config(args.config_file)
+        cfg = config.get_config(parsed_args.config_file)
         if cfg is None:
-            parser.error(f"Could not load configuration from {args.config_file}")
+            parser.error(f"Could not load configuration from {parsed_args.config_file}")
         conn = client.open_connection(cfg)
         try:
-            if args.list_mailboxes:
-                list_mailboxes(cfg, args.debug, conn)
+            if parsed_args.list_mailboxes:
+                list_mailboxes(cfg, parsed_args.debug, conn)
             else:
                 # Create appropriate progress tracker
+                progress_tracker: ui.ProgressTracker | ui.NullProgressTracker
                 if show_progress:
                     # Use interactive widgets by default when showing progress
-                    use_interactive = args.interactive or show_progress
+                    use_interactive = parsed_args.interactive or show_progress
                     progress_tracker = ui.ProgressTracker(
-                        interactive=use_interactive, quiet=args.quiet
+                        interactive=use_interactive, quiet=parsed_args.quiet
                     )
 
                     # When using interactive progress, redirect warnings to rich console
-                    if use_interactive and not args.verbose and not args.debug:
+                    if (
+                        use_interactive
+                        and not parsed_args.verbose
+                        and not parsed_args.debug
+                    ):
                         # Add the rich warning handler
                         rich_handler = ui.RichWarningHandler(progress_tracker)
                         rich_handler.setFormatter(logging.Formatter("%(message)s"))
@@ -276,11 +290,17 @@ def main(args=None):
                     progress_tracker = ui.NullProgressTracker()
 
                 with progress_tracker:
-                    process_rules(cfg, args.debug, conn, args.dry_run, progress_tracker)
+                    process_rules(
+                        cfg,
+                        parsed_args.debug,
+                        conn,
+                        parsed_args.dry_run,
+                        progress_tracker,
+                    )
         finally:
             conn.close()
     except Exception as err:
-        if args.debug:
+        if parsed_args.debug:
             raise
         parser.error(str(err))
     return 0

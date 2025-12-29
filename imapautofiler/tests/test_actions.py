@@ -30,18 +30,18 @@ class TestRegisteredFactories(object):
     ]
     scenarios = [(name, {"name": name}) for name in _names]
 
-    def test_known(self, name):
+    def test_known(self, name: str) -> None:
         assert name in actions._lookup_table
 
 
 class TestFactory(unittest.TestCase):
-    def test_unnamed(self):
+    def test_unnamed(self) -> None:
         self.assertRaises(ValueError, actions.factory, {}, {})
 
-    def test_unknown(self):
+    def test_unknown(self) -> None:
         self.assertRaises(ValueError, actions.factory, {"name": "unknown-action"}, {})
 
-    def test_lookup(self):
+    def test_lookup(self) -> None:
         with mock.patch.object(actions, "_lookup_table", {}) as lt:
             lt["move"] = mock.Mock()
             actions.factory({"name": "move"}, {})
@@ -49,7 +49,7 @@ class TestFactory(unittest.TestCase):
 
 
 class TestMove(base.TestCase):
-    def test_static_mailbox_name(self):
+    def test_static_mailbox_name(self) -> None:
         m = actions.Move(
             {"name": "move", "dest-mailbox": "msg-goes-here"},
             {},
@@ -59,7 +59,7 @@ class TestMove(base.TestCase):
             m._get_dest_mailbox("id-here", self.without_offset_msg),
         )
 
-    def test_parameterized_mailbox_name(self):
+    def test_parameterized_mailbox_name(self) -> None:
         m = actions.Move(
             {"name": "move", "dest-mailbox": "archive.{{ date.year }}"},
             {},
@@ -73,7 +73,7 @@ class TestMove(base.TestCase):
             dest_mailbox,
         )
 
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.Move(
             {"name": "move", "dest-mailbox": "msg-goes-here"},
             {},
@@ -94,7 +94,7 @@ class TestMove(base.TestCase):
 
 
 class TestSort(base.TestCase):
-    def test_create(self):
+    def test_create(self) -> None:
         m = actions.Sort(
             {"name": "sort", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -102,7 +102,7 @@ class TestSort(base.TestCase):
         self.assertEqual("lists-go-under-here.", m._dest_mailbox_base)
         self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
 
-    def test_create_missing_base(self):
+    def test_create_missing_base(self) -> None:
         self.assertRaises(
             ValueError,
             actions.Sort,
@@ -110,7 +110,7 @@ class TestSort(base.TestCase):
             {},
         )
 
-    def test_create_with_regex(self):
+    def test_create_with_regex(self) -> None:
         m = actions.Sort(
             {
                 "name": "sort",
@@ -122,7 +122,7 @@ class TestSort(base.TestCase):
         self.assertEqual("lists-go-under-here.", m._dest_mailbox_base)
         self.assertEqual(":(.*):", m._dest_mailbox_regex.pattern)
 
-    def test_create_bad_regex(self):
+    def test_create_bad_regex(self) -> None:
         self.assertRaises(
             ValueError,
             actions.Sort,
@@ -134,7 +134,7 @@ class TestSort(base.TestCase):
             {},
         )
 
-    def test_create_with_multi_group_regex(self):
+    def test_create_with_multi_group_regex(self) -> None:
         m = actions.Sort(
             {
                 "name": "sort",
@@ -146,7 +146,7 @@ class TestSort(base.TestCase):
         )
         self.assertEqual(1, m._dest_mailbox_regex_group)
 
-    def test_get_dest_mailbox_default(self):
+    def test_get_dest_mailbox_default(self) -> None:
         m = actions.Sort(
             {"name": "sort", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -157,7 +157,7 @@ class TestSort(base.TestCase):
             dest,
         )
 
-    def test_get_dest_mailbox_i18n(self):
+    def test_get_dest_mailbox_i18n(self) -> None:
         m = actions.Sort(
             {"name": "sort", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -168,7 +168,7 @@ class TestSort(base.TestCase):
             dest,
         )
 
-    def test_get_dest_mailbox_regex(self):
+    def test_get_dest_mailbox_regex(self) -> None:
         m = actions.Sort(
             {
                 "name": "sort",
@@ -183,7 +183,7 @@ class TestSort(base.TestCase):
             dest,
         )
 
-    def test_get_dest_mailbox_template(self):
+    def test_get_dest_mailbox_template(self) -> None:
         m = actions.Sort(
             {
                 "name": "sort",
@@ -201,7 +201,7 @@ class TestSort(base.TestCase):
             dest,
         )
 
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.Sort(
             {"name": "sort", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -222,7 +222,7 @@ class TestSort(base.TestCase):
 
 
 class TestSortMailingList(base.TestCase):
-    def test_create(self):
+    def test_create(self) -> None:
         m = actions.SortMailingList(
             {"name": "sort-mailing-list", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -230,7 +230,7 @@ class TestSortMailingList(base.TestCase):
         self.assertEqual("lists-go-under-here.", m._dest_mailbox_base)
         self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
 
-    def test_create_missing_base(self):
+    def test_create_missing_base(self) -> None:
         self.assertRaises(
             ValueError,
             actions.SortMailingList,
@@ -238,7 +238,7 @@ class TestSortMailingList(base.TestCase):
             {},
         )
 
-    def test_create_with_regex(self):
+    def test_create_with_regex(self) -> None:
         m = actions.SortMailingList(
             {
                 "name": "sort-mailing-list",
@@ -250,7 +250,7 @@ class TestSortMailingList(base.TestCase):
         self.assertEqual("lists-go-under-here.", m._dest_mailbox_base)
         self.assertEqual(":(.*):", m._dest_mailbox_regex.pattern)
 
-    def test_create_bad_regex(self):
+    def test_create_bad_regex(self) -> None:
         self.assertRaises(
             ValueError,
             actions.SortMailingList,
@@ -262,7 +262,7 @@ class TestSortMailingList(base.TestCase):
             {},
         )
 
-    def test_create_with_multi_group_regex(self):
+    def test_create_with_multi_group_regex(self) -> None:
         m = actions.SortMailingList(
             {
                 "name": "sort-mailing-list",
@@ -274,7 +274,7 @@ class TestSortMailingList(base.TestCase):
         )
         self.assertEqual(2, m._dest_mailbox_regex_group)
 
-    def test_get_dest_mailbox_default(self):
+    def test_get_dest_mailbox_default(self) -> None:
         m = actions.SortMailingList(
             {"name": "sort-mailing-list", "dest-mailbox-base": "lists-go-under-here."},
             {},
@@ -286,7 +286,7 @@ class TestSortMailingList(base.TestCase):
             dest,
         )
 
-    def test_get_dest_mailbox_regex(self):
+    def test_get_dest_mailbox_regex(self) -> None:
         m = actions.SortMailingList(
             {
                 "name": "sort-mailing-list",
@@ -302,7 +302,7 @@ class TestSortMailingList(base.TestCase):
             dest,
         )
 
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.SortMailingList(
             {
                 "name": "sort-mailing-list",
@@ -325,7 +325,7 @@ class TestSortMailingList(base.TestCase):
 
 
 class TestSortByYear(base.TestCase):
-    def test_create(self):
+    def test_create(self) -> None:
         m = actions.SortByYear(
             {"name": "sort-by-year", "dest-mailbox-base": "archive-under-here/"},
             {},
@@ -333,7 +333,7 @@ class TestSortByYear(base.TestCase):
         self.assertEqual("archive-under-here/", m._dest_mailbox_base)
         self.assertEqual(m._default_regex, m._dest_mailbox_regex.pattern)
 
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.SortByYear(
             {
                 "name": "sort-by-year",
@@ -354,7 +354,7 @@ class TestSortByYear(base.TestCase):
             message=self.msg,
         )
 
-    def test_invalid_date(self):
+    def test_invalid_date(self) -> None:
         m = actions.SortByYear(
             {
                 "name": "sort-by-year",
@@ -378,7 +378,7 @@ class TestSortByYear(base.TestCase):
             message=self.msg,
         )
 
-    def test_no_date_header(self):
+    def test_no_date_header(self) -> None:
         m = actions.SortByYear(
             {
                 "name": "sort-by-year",
@@ -401,7 +401,7 @@ class TestSortByYear(base.TestCase):
             message=self.msg,
         )
 
-    def test_empty_date_header(self):
+    def test_empty_date_header(self) -> None:
         m = actions.SortByYear(
             {
                 "name": "sort-by-year",
@@ -427,21 +427,21 @@ class TestSortByYear(base.TestCase):
 
 
 class TestTrash(base.TestCase):
-    def test_create(self):
+    def test_create(self) -> None:
         m = actions.Trash(
             {"name": "trash"},
             {"trash-mailbox": "to-the-trash"},
         )
         self.assertEqual("to-the-trash", m._dest_mailbox)
 
-    def test_create_with_dest(self):
+    def test_create_with_dest(self) -> None:
         m = actions.Trash(
             {"name": "trash", "dest-mailbox": "local-override"},
             {"trash-mailbox": "to-the-trash"},
         )
         self.assertEqual("local-override", m._dest_mailbox)
 
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.Trash(
             {"name": "trash"},
             {"trash-mailbox": "to-the-trash"},
@@ -462,7 +462,7 @@ class TestTrash(base.TestCase):
 
 
 class TestDelete(base.TestCase):
-    def test_invoke(self):
+    def test_invoke(self) -> None:
         m = actions.Delete(
             {"name": "delete"},
             {},
@@ -473,7 +473,7 @@ class TestDelete(base.TestCase):
 
 
 class TestFlag(base.TestCase):
-    def test_flag(self):
+    def test_flag(self) -> None:
         m = actions.Flag(
             {"name": "flag"},
             {},
@@ -484,7 +484,7 @@ class TestFlag(base.TestCase):
             "src-mailbox", "id-here", self.msg, True
         )
 
-    def test_unflag(self):
+    def test_unflag(self) -> None:
         m = actions.Unflag(
             {"name": "unflag"},
             {},
@@ -497,7 +497,7 @@ class TestFlag(base.TestCase):
 
 
 class TestMarkRead(base.TestCase):
-    def test_mark_read(self):
+    def test_mark_read(self) -> None:
         m = actions.MarkRead(
             {"name": "mark_read"},
             {},
@@ -506,7 +506,7 @@ class TestMarkRead(base.TestCase):
         m.invoke(conn, "src-mailbox", "id-here", self.msg)
         conn.set_read.assert_called_once_with("src-mailbox", "id-here", self.msg, True)
 
-    def test_mark_unread(self):
+    def test_mark_unread(self) -> None:
         m = actions.MarkUnread(
             {"name": "mark_unread"},
             {},

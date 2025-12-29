@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import typing
 import unittest
 import unittest.mock as mock
 
@@ -30,30 +31,30 @@ class TestRegisteredFactories(object):
     ]
     scenarios = [(name, {"name": name}) for name in _names]
 
-    def test_known(self, name):
+    def test_known(self, name: str) -> None:
         assert name in rules._lookup_table
 
 
 class TestFactory(unittest.TestCase):
-    def test_unnamed(self):
+    def test_unnamed(self) -> None:
         self.assertRaises(ValueError, rules.factory, {}, {})
 
-    def test_unknown(self):
+    def test_unknown(self) -> None:
         self.assertRaises(ValueError, rules.factory, {"unknown-rule": {}}, {})
 
-    def test_lookup(self):
+    def test_lookup(self) -> None:
         with mock.patch.object(rules, "_lookup_table", {}) as lt:
             lt["or"] = mock.Mock()
             rules.factory({"or": {}}, {})
             lt["or"].assert_called_with({"or": {}}, {})
 
-    def test_ignore_action(self):
+    def test_ignore_action(self) -> None:
         self.assertRaises(ValueError, rules.factory, {"action": {}}, {})
 
 
 class TestOr(base.TestCase):
-    def test_create_recursive(self):
-        rule_def = {
+    def test_create_recursive(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "or": {
                 "rules": [
                     {
@@ -74,8 +75,8 @@ class TestOr(base.TestCase):
         self.assertIsInstance(r._sub_rules[1], rules.Headers)
         self.assertEqual(len(r._sub_rules), 2)
 
-    def test_check_pass_first(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_pass_first(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
@@ -85,8 +86,8 @@ class TestOr(base.TestCase):
         r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
-    def test_check_short_circuit(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_short_circuit(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
@@ -96,8 +97,8 @@ class TestOr(base.TestCase):
         r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
-    def test_check_pass_second(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_pass_second(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -107,8 +108,8 @@ class TestOr(base.TestCase):
         r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
-    def test_check_no_match(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Or(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -118,15 +119,15 @@ class TestOr(base.TestCase):
         r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_no_subrules(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_no_subrules(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Or(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
 
 class TestAnd(base.TestCase):
-    def test_create_recursive(self):
-        rule_def = {
+    def test_create_recursive(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "and": {
                 "rules": [
                     {
@@ -147,8 +148,8 @@ class TestAnd(base.TestCase):
         self.assertIsInstance(r._sub_rules[1], rules.Headers)
         self.assertEqual(len(r._sub_rules), 2)
 
-    def test_check_fail_one_1(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_fail_one_1(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
@@ -158,8 +159,8 @@ class TestAnd(base.TestCase):
         r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_fail_one_2(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_fail_one_2(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -169,8 +170,8 @@ class TestAnd(base.TestCase):
         r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_short_circuit(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_short_circuit(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -180,8 +181,8 @@ class TestAnd(base.TestCase):
         r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_pass_second(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_pass_second(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
@@ -191,8 +192,8 @@ class TestAnd(base.TestCase):
         r._sub_rules.append(r2)
         self.assertTrue(r.check(self.msg))
 
-    def test_check_no_match(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -202,55 +203,55 @@ class TestAnd(base.TestCase):
         r._sub_rules.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_no_subrules(self):
-        rule_def = {"and": {"rules": []}}
+    def test_check_no_subrules(self) -> None:
+        rule_def: dict[str, typing.Any] = {"and": {"rules": []}}
         r = rules.And(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
 
 class TestHeaderExactValue(base.TestCase):
-    def test_match(self):
-        rule_def = {
+    def test_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "value": "recipient1@example.com",
         }
         r = rules.HeaderExactValue(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_no_match(self):
-        rule_def = {
+    def test_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "value": "not_the_recipient1@example.com",
         }
         r = rules.HeaderExactValue(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_no_such_header(self):
-        rule_def = {
+    def test_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "value": "recipient1@example.com",
         }
         r = rules.HeaderExactValue(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_i18n_match(self):
-        rule_def = {
+    def test_i18n_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "value": "Re: ответ на предыдущее сообщение",
         }
         r = rules.HeaderExactValue(rule_def, {})
         self.assertTrue(r.check(self.i18n_msg))
 
-    def test_i18n_no_match(self):
-        rule_def = {
+    def test_i18n_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "value": "Re: что-то другое",
         }
         r = rules.HeaderExactValue(rule_def, {})
         self.assertFalse(r.check(self.i18n_msg))
 
-    def test_i18n_no_such_header(self):
-        rule_def = {
+    def test_i18n_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "value": "такого заголовка нет",
         }
@@ -259,56 +260,56 @@ class TestHeaderExactValue(base.TestCase):
 
 
 class TestHeaderSubString(base.TestCase):
-    def test_match(self):
-        rule_def = {
+    def test_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "substring": "recipient1@example.com",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_match_case_insensitive(self):
-        rule_def = {
+    def test_match_case_insensitive(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "substring": "RECIPIENT1@EXAMPLE.COM",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_no_match(self):
-        rule_def = {
+    def test_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "substring": "not_the_recipient1@example.com",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_no_such_header(self):
-        rule_def = {
+    def test_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "substring": "recipient1@example.com",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_i18n_match(self):
-        rule_def = {
+    def test_i18n_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "substring": "предыдущее",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertTrue(r.check(self.i18n_msg))
 
-    def test_i18n_no_match(self):
-        rule_def = {
+    def test_i18n_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "substring": "что-то другое",
         }
         r = rules.HeaderSubString(rule_def, {})
         self.assertFalse(r.check(self.i18n_msg))
 
-    def test_i18n_no_such_header(self):
-        rule_def = {
+    def test_i18n_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "substring": "такого заголовка нет",
         }
@@ -317,48 +318,48 @@ class TestHeaderSubString(base.TestCase):
 
 
 class TestHeaderRegex(base.TestCase):
-    def test_match(self):
-        rule_def = {
+    def test_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "regex": "recipient.*@example.com",
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_no_match(self):
-        rule_def = {
+    def test_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "to",
             "regex": "not_the_recipient.*@example.com",
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_no_such_header(self):
-        rule_def = {
+    def test_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "regex": "not_the_recipient.*@example.com",
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
-    def test_i18n_match(self):
-        rule_def = {
+    def test_i18n_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "regex": "предыдущее",
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertTrue(r.check(self.i18n_msg))
 
-    def test_i18n_no_match(self):
-        rule_def = {
+    def test_i18n_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "subject",
             "regex": "что-то другое",
         }
         r = rules.HeaderRegex(rule_def, {})
         self.assertFalse(r.check(self.i18n_msg))
 
-    def test_i18n_no_such_header(self):
-        rule_def = {
+    def test_i18n_no_such_header(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "this_header_not_present",
             "regex": "такого заголовка нет",
         }
@@ -367,22 +368,22 @@ class TestHeaderRegex(base.TestCase):
 
 
 class TestHeaderExists(base.TestCase):
-    def test_exists(self):
-        rule_def = {
+    def test_exists(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "references",
         }
         r = rules.HeaderExists(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_exists_no_case(self):
-        rule_def = {
+    def test_exists_no_case(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "REFERENCES",
         }
         r = rules.HeaderExists(rule_def, {})
         self.assertTrue(r.check(self.msg))
 
-    def test_no_exists(self):
-        rule_def = {
+    def test_no_exists(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "name": "no-such-header",
         }
         r = rules.HeaderExists(rule_def, {})
@@ -390,21 +391,21 @@ class TestHeaderExists(base.TestCase):
 
 
 class TestIsMailingList(base.TestCase):
-    def test_yes(self):
-        rule_def = {}
+    def test_yes(self) -> None:
+        rule_def: dict[str, typing.Any] = {}
         r = rules.IsMailingList(rule_def, {})
         self.msg["list-id"] = "<sphinx-dev.googlegroups.com>"
         self.assertTrue(r.check(self.msg))
 
-    def test_no(self):
-        rule_def = {}
+    def test_no(self) -> None:
+        rule_def: dict[str, typing.Any] = {}
         r = rules.IsMailingList(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
 
 class TestHeaders(base.TestCase):
-    def test_create_recursive(self):
-        rule_def = {
+    def test_create_recursive(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "headers": [
                 {"name": "to", "substring": "recipient1@example.com"},
                 {"name": "cc", "substring": "recipient1@example.com"},
@@ -425,16 +426,16 @@ class TestHeaders(base.TestCase):
         self.assertIsInstance(r._matchers[3], rules.HeaderExactValue)
         self.assertEqual(len(r._matchers), 4)
 
-    def test_create_unknown_type(self):
-        rule_def = {
+    def test_create_unknown_type(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "headers": [
                 {"name": "to"},
             ],
         }
         self.assertRaises(ValueError, rules.Headers, rule_def, {})
 
-    def test_check_no_short_circuit(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_no_short_circuit(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Headers(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = True
@@ -446,8 +447,8 @@ class TestHeaders(base.TestCase):
         r1.check.assert_called_once_with(self.msg)
         r2.check.assert_called_once_with(self.msg)
 
-    def test_fail_one(self):
-        rule_def = {"or": {"rules": []}}
+    def test_fail_one(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Headers(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -457,8 +458,8 @@ class TestHeaders(base.TestCase):
         r._matchers.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_no_match(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_no_match(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Headers(rule_def, {})
         r1 = mock.Mock()
         r1.check.return_value = False
@@ -468,15 +469,15 @@ class TestHeaders(base.TestCase):
         r._matchers.append(r2)
         self.assertFalse(r.check(self.msg))
 
-    def test_check_no_matchers(self):
-        rule_def = {"or": {"rules": []}}
+    def test_check_no_matchers(self) -> None:
+        rule_def: dict[str, typing.Any] = {"or": {"rules": []}}
         r = rules.Headers(rule_def, {})
         self.assertFalse(r.check(self.msg))
 
 
 class TestRecipient(base.TestCase):
-    def test_create_recursive(self):
-        rule_def = {
+    def test_create_recursive(self) -> None:
+        rule_def: dict[str, typing.Any] = {
             "recipient": {"substring": "recipient1@example.com"},
         }
         r = rules.Recipient(rule_def, {})
@@ -511,26 +512,26 @@ class TestRecipient(base.TestCase):
 class TestTimeLimit(base.TestCase):
     """Test TimeLimit class handling of passed and permitted messages."""
 
-    def get_def(self):
-        rule_def = {
+    def get_def(self) -> dict[str, typing.Any]:
+        rule_def: dict[str, typing.Any] = {
             "time-limit": {
                 "age": 30,
             }
         }
         return rule_def
 
-    def test_time_limit_expired(self):
+    def test_time_limit_expired(self) -> None:
         r = rules.TimeLimit(self.get_def(), {})
         self.assertTrue(r.check(self.msg))
 
-    def test_time_limit_current(self):
+    def test_time_limit_current(self) -> None:
         r = rules.TimeLimit(self.get_def(), {})
         self.assertEqual(r.check(self.recent_msg), 0)
 
-    def test_time_limit_expired_without_offset(self):
+    def test_time_limit_expired_without_offset(self) -> None:
         r = rules.TimeLimit(self.get_def(), {})
         self.assertTrue(r.check(self.without_offset_msg))
 
-    def test_invalid_date(self):
+    def test_invalid_date(self) -> None:
         r = rules.TimeLimit(self.get_def(), {})
         self.assertFalse(r.check(self.without_date_msg))

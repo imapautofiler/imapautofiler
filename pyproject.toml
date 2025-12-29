@@ -84,6 +84,7 @@ build = "python -m sphinx.cmd.build -E -W -v -T doc/source doc/build"
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
+disallow_untyped_defs = true
 
 [tool.basedpyright]
 reportUnannotatedClassAttribute = false
