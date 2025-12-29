@@ -55,7 +55,14 @@ class ProgressTracker:
     """Tracks progress for mailbox processing with fallback for environments without rich."""
 
     def __init__(self, interactive: bool = False, quiet: bool = False) -> None:
+        # Enhanced interactive detection with graceful fallback
         self.interactive = interactive and RICH_AVAILABLE
+        if interactive and not RICH_AVAILABLE:
+            # Log the fallback for user awareness (only once)
+            import logging
+            logging.getLogger(__name__).info(
+                "Rich library not available, falling back to basic progress display"
+            )
         self.quiet = quiet
         self._console: Optional["Console"] = None
         self._progress: Optional["Progress"] = None
@@ -263,7 +270,7 @@ class ProgressTracker:
         self._stats["total_mailboxes_overall"] = total_mailboxes
         self._stats["completed_mailboxes"] = 0
 
-        if self._progress:
+        if self._progress and self._overall_task is not None:
             self._progress.update(
                 self._overall_task,
                 description=f"[{Colors.PROGRESS_TEXT}]Processing mailboxes",
@@ -282,18 +289,20 @@ class ProgressTracker:
             # Update the overall task description to show current mailbox
             completed_mb = self._stats.get("completed_mailboxes", 0)
             total_mb = self._stats.get("total_mailboxes_overall", 0)
-            self._progress.update(
-                self._overall_task,
-                description=f"[{Colors.PROGRESS_TEXT}]Mailbox {completed_mb + 1}/{total_mb}: {mailbox_name}",
-            )
+            if self._overall_task is not None:
+                self._progress.update(
+                    self._overall_task,
+                    description=f"[{Colors.PROGRESS_TEXT}]Mailbox {completed_mb + 1}/{total_mb}: {mailbox_name}",
+                )
 
             # Update the pre-created mailbox messages progress task
-            self._progress.update(
-                self._mailbox_task,
-                description=f"[{Colors.PROGRESS_TEXT}]📁 Messages in {mailbox_name}",
-                total=total_messages,
-                completed=0,
-            )
+            if self._mailbox_task is not None:
+                self._progress.update(
+                    self._mailbox_task,
+                    description=f"[{Colors.PROGRESS_TEXT}]📁 Messages in {mailbox_name}",
+                    total=total_messages,
+                    completed=0,
+                )
         elif not self.quiet:
             print(f"Processing mailbox: {mailbox_name} ({total_messages} messages)")
 
@@ -334,7 +343,7 @@ class ProgressTracker:
         if "completed_mailboxes" in self._stats:
             self._stats["completed_mailboxes"] += 1
 
-        if self._progress:
+        if self._progress and self._overall_task is not None:
             self._progress.update(self._overall_task, advance=1)
 
         self._current_subject = ""
@@ -413,5 +422,45 @@ class NullProgressTracker:
 
 
 def is_interactive_terminal() -> bool:
-    """Check if we're running in an interactive terminal."""
-    return sys.stdout.isatty() and RICH_AVAILABLE
+    """Check if we're running in an interactive terminal with full capabilities."""
+    if not RICH_AVAILABLE:
+        return False
+    
+    # Check if stdout is a TTY (not redirected)
+    if not sys.stdout.isatty():
+        return False
+    
+    # Check for common non-interactive environments
+    import os
+    ci_environments = {
+        'CI', 'CONTINUOUS_INTEGRATION', 'GITHUB_ACTIONS', 
+        'GITLAB_CI', 'JENKINS_URL', 'BUILDKITE'
+    }
+    if any(env in os.environ for env in ci_environments):
+        return False
+    
+    # Check terminal capabilities
+    term = os.environ.get('TERM', '').lower()
+    if term in ('dumb', 'unknown', '') or 'emacs' in term:
+        return False
+    
+    return True
+
+
+def should_use_progress(interactive_requested: bool = False, 
+                       no_interactive_requested: bool = False,
+                       verbose: bool = False, 
+                       debug: bool = False) -> bool:
+    """Determine if progress display should be enabled based on environment and options."""
+    # Explicit user preferences override everything
+    if no_interactive_requested:
+        return False
+    if interactive_requested:
+        return RICH_AVAILABLE  # Honor request if rich is available
+    
+    # Auto-detection: enable if we have good terminal support
+    # but disable for verbose/debug modes where log output is important
+    if verbose or debug:
+        return False
+    
+    return is_interactive_terminal()

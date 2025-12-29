@@ -200,19 +200,12 @@ def main(args=None):
     if args.debug:
         imaplib.Debug = 4  # type: ignore[attr-defined]
 
-    # Determine if we should show interactive progress
-    # Default to showing progress when rich is available unless explicitly disabled
-    show_progress = (
-        not args.no_interactive  # Respect explicit disable flag
-        and (
-            args.interactive
-            or (
-                not args.verbose
-                and not args.debug
-                and hasattr(ui, "RICH_AVAILABLE")
-                and ui.RICH_AVAILABLE
-            )
-        )
+    # Determine if we should show interactive progress using enhanced auto-detection
+    show_progress = ui.should_use_progress(
+        interactive_requested=args.interactive,
+        no_interactive_requested=args.no_interactive,
+        verbose=args.verbose,
+        debug=args.debug
     )
 
     # Handle quiet mode and logging configuration
