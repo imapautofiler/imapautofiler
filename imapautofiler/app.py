@@ -90,8 +90,8 @@ def process_rules(cfg, debug, conn, dry_run=False):
                     # based on one rule, so there is no need to
                     # look at the other rules.
                     break
-                else:
-                    LOG.debug("no rules match")
+            else:
+                LOG.debug("no rules match")
 
             # break
 
