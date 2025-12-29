@@ -17,7 +17,7 @@ import signal
 import sys
 import time
 import types
-from typing import Optional, Any, Callable, Union
+from typing import Any, Callable
 
 from rich.console import Console
 from rich.layout import Layout
@@ -58,12 +58,12 @@ class ProgressTracker:
     def __init__(self, interactive: bool = False, quiet: bool = False) -> None:
         self.interactive = interactive
         self.quiet = quiet
-        self._console: Optional[Console] = None
-        self._progress: Optional[Progress] = None
-        self._live: Optional[Live] = None
-        self._layout: Optional[Layout] = None
-        self._overall_task: Optional[TaskID] = None
-        self._mailbox_task: Optional[TaskID] = None
+        self._console: Console | None = None
+        self._progress: Progress | None = None
+        self._live: Live | None = None
+        self._layout: Layout | None = None
+        self._overall_task: TaskID | None = None
+        self._mailbox_task: TaskID | None = None
 
         # Statistics tracking
         self._stats = {
@@ -81,11 +81,9 @@ class ProgressTracker:
         self._current_from: str = ""
         self._current_to: str = ""
         self._current_mailbox: str = ""
-        self._start_time: Optional[float] = None
+        self._start_time: float | None = None
         self._interrupted: bool = False
-        self._original_sigint_handler: Optional[
-            Union[Callable[[int, Any], Any], int]
-        ] = None
+        self._original_sigint_handler: (Callable[[int, Any], Any] | int) | None = None
 
         # Recent actions tracking (most recent first)
         self._recent_actions: list[str] = []
