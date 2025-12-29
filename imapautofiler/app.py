@@ -17,7 +17,7 @@ import imaplib
 import logging
 import sys
 
-from imapautofiler import actions, client, config, rules
+from imapautofiler import actions, client, config, rules, ui, i18n
 
 LOG = logging.getLogger("imapautofiler")
 
@@ -39,7 +39,7 @@ def list_mailboxes(cfg, debug, conn):
         print(f)
 
 
-def process_rules(cfg, debug, conn, dry_run=False):
+def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
     """Run the rules from the configuration file.
 
     :param cfg: full configuration
@@ -54,34 +54,87 @@ def process_rules(cfg, debug, conn, dry_run=False):
     num_processed = 0
     num_errors = 0
 
+    # Provide a default progress tracker if none given
+    if progress_tracker is None:
+        progress_tracker = ui.NullProgressTracker()
+
+    # Start overall progress tracking
+    progress_tracker.start_overall(len(cfg["mailboxes"]))
+
     for mailbox in cfg["mailboxes"]:
+        # Check for interruption before starting each mailbox
+        if progress_tracker.is_interrupted():
+            LOG.info("Processing interrupted by user, stopping")
+            break
+
         mailbox_name = mailbox["name"]
         LOG.info("starting mailbox %r", mailbox_name)
 
         mailbox_rules = [rules.factory(r, cfg) for r in mailbox["rules"]]
 
-        for msg_id, message in conn.mailbox_iterate(mailbox_name):
+        mailbox_iter = conn.get_mailbox_iterator(mailbox_name)
+
+        # Start mailbox-specific progress tracking
+        progress_tracker.start_mailbox(mailbox_name, len(mailbox_iter))
+
+        for msg_id, message in mailbox_iter:
+            # Check for interruption at the start of each message
+            if progress_tracker.is_interrupted():
+                LOG.info("Processing interrupted by user")
+                break
+
             num_messages += 1
+            subject = i18n.get_header_value(message, "subject") or "No Subject"
+            from_addr = i18n.get_header_value(message, "from") or ""
+            to_addr = i18n.get_header_value(message, "to") or ""
+
             if debug:
                 print(message.as_string().rstrip())
             else:
-                LOG.debug("message %s: %s", msg_id, message["subject"])
+                LOG.debug("message %s: %s", msg_id, subject)
 
+            # Update progress tracker with current message
+            progress_tracker.update_message(
+                advance=0, subject=subject, from_addr=from_addr, to_addr=to_addr
+            )
+
+            action_taken = False
             for rule in mailbox_rules:
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
                     try:
-                        action.report(conn, mailbox_name, msg_id, message)
+                        action_message = action.report(
+                            conn, mailbox_name, msg_id, message
+                        )
+                        LOG.info(action_message)  # Log the action message
+
                         if not dry_run:
                             action.invoke(conn, mailbox_name, msg_id, message)
+
+                        # Determine action type for statistics
+                        action_type = "move"  # Default
+                        if hasattr(action, "NAME") and action.NAME:
+                            action_name = str(action.NAME).lower()
+                            if "delete" in action_name:
+                                action_type = "delete"
+                            elif "flag" in action_name:
+                                action_type = "flag"
+
+                        # Update progress with action taken and action message
+                        progress_tracker.update_message(
+                            advance=1, action=action_type, action_message=action_message
+                        )
+                        action_taken = True
+
                     except Exception as err:
                         LOG.error(
                             'failed to %s "%s": %s',
                             action.NAME,
-                            message["subject"],
+                            subject,
                             err,
                         )
                         num_errors += 1
+                        progress_tracker.update_message(advance=1, action="error")
                         if debug:
                             raise
                     else:
@@ -93,11 +146,18 @@ def process_rules(cfg, debug, conn, dry_run=False):
             else:
                 LOG.debug("no rules match")
 
+            # If no action was taken, still update progress to advance the counter
+            if not action_taken:
+                progress_tracker.update_message(advance=1)
+
             # break
 
         # Remove messages that we just moved.
         conn.expunge()
         LOG.info("completed mailbox %r", mailbox_name)
+
+        # Finish mailbox progress tracking
+        progress_tracker.finish_mailbox()
     LOG.info("encountered %s messages, processed %s", num_messages, num_processed)
     if num_errors:
         LOG.info("encountered %d errors", num_errors)
@@ -137,13 +197,49 @@ def main(args=None):
         action="store_true",
         help="process the rules without taking any action",
     )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        default=False,
+        action="store_true",
+        help="enable rich interactive progress displays",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        default=False,
+        action="store_true",
+        help="show only warning and error messages, disable interactive mode",
+    )
+    parser.add_argument(
+        "--no-interactive",
+        default=False,
+        action="store_true",
+        help="disable interactive progress displays",
+    )
     args = parser.parse_args()
 
     if args.debug:
-        imaplib.Debug = 4
+        imaplib.Debug = 4  # type: ignore[attr-defined]
 
-    if args.verbose or args.debug:
+    # Determine if we should show interactive progress using enhanced auto-detection
+    show_progress = ui.should_use_progress(
+        interactive_requested=args.interactive,
+        no_interactive_requested=args.no_interactive
+        or args.quiet,  # quiet disables interactive
+        verbose=args.verbose,
+        debug=args.debug,
+    )
+
+    # Handle quiet mode and logging configuration
+    if args.quiet:
+        log_level = logging.WARNING  # Quiet mode shows warnings and above
+    elif args.verbose or args.debug:
         log_level = logging.DEBUG
+    elif show_progress:
+        log_level = (
+            logging.WARNING
+        )  # Suppress info logs when showing interactive progress
     else:
         log_level = logging.INFO
 
@@ -155,18 +251,38 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
+        if cfg is None:
+            parser.error(f"Could not load configuration from {args.config_file}")
         conn = client.open_connection(cfg)
         try:
             if args.list_mailboxes:
                 list_mailboxes(cfg, args.debug, conn)
             else:
-                process_rules(cfg, args.debug, conn, args.dry_run)
+                # Create appropriate progress tracker
+                if show_progress:
+                    # Use interactive widgets by default when showing progress
+                    use_interactive = args.interactive or show_progress
+                    progress_tracker = ui.ProgressTracker(
+                        interactive=use_interactive, quiet=args.quiet
+                    )
+
+                    # When using interactive progress, redirect warnings to rich console
+                    if use_interactive and not args.verbose and not args.debug:
+                        # Add the rich warning handler
+                        rich_handler = ui.RichWarningHandler(progress_tracker)
+                        rich_handler.setFormatter(logging.Formatter("%(message)s"))
+                        logging.getLogger().addHandler(rich_handler)
+                else:
+                    progress_tracker = ui.NullProgressTracker()
+
+                with progress_tracker:
+                    process_rules(cfg, args.debug, conn, args.dry_run, progress_tracker)
         finally:
             conn.close()
     except Exception as err:
         if args.debug:
             raise
-        parser.error(err)
+        parser.error(str(err))
     return 0
 
 
