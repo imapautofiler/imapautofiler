@@ -17,7 +17,7 @@ import imaplib
 import logging
 import sys
 
-from imapautofiler import actions, client, config, rules, ui
+from imapautofiler import actions, client, config, rules, ui, i18n
 
 LOG = logging.getLogger("imapautofiler")
 
@@ -70,11 +70,17 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
 
         for msg_id, message in mailbox_iter:
             num_messages += 1
+            subject = i18n.get_header_value(message, "subject") or "No Subject"
+
             if debug:
                 print(message.as_string().rstrip())
             else:
-                LOG.debug("message %s: %s", msg_id, message["subject"])
+                LOG.debug("message %s: %s", msg_id, subject)
 
+            # Update progress tracker with current message
+            progress_tracker.update_message(advance=0, subject=subject)
+
+            action_taken = False
             for rule in mailbox_rules:
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
@@ -82,14 +88,29 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                         action.report(conn, mailbox_name, msg_id, message)
                         if not dry_run:
                             action.invoke(conn, mailbox_name, msg_id, message)
+
+                        # Determine action type for statistics
+                        action_type = "move"  # Default
+                        if hasattr(action, "NAME") and action.NAME:
+                            action_name = str(action.NAME).lower()
+                            if "delete" in action_name:
+                                action_type = "delete"
+                            elif "flag" in action_name:
+                                action_type = "flag"
+
+                        # Update progress with action taken
+                        progress_tracker.update_message(advance=1, action=action_type)
+                        action_taken = True
+
                     except Exception as err:
                         LOG.error(
                             'failed to %s "%s": %s',
                             action.NAME,
-                            message["subject"],
+                            subject,
                             err,
                         )
                         num_errors += 1
+                        progress_tracker.update_message(advance=1, action="error")
                         if debug:
                             raise
                     else:
@@ -101,8 +122,9 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
             else:
                 LOG.debug("no rules match")
 
-            # Update message progress
-            progress_tracker.update_message()
+            # If no action was taken, still update progress to advance the counter
+            if not action_taken:
+                progress_tracker.update_message(advance=1)
 
             # break
 
@@ -180,7 +202,7 @@ def main(args=None):
     args = parser.parse_args()
 
     if args.debug:
-        imaplib.Debug = 4
+        imaplib.Debug = 4  # type: ignore[attr-defined]
 
     # Determine if we should show progress first
     # Default to showing progress when rich is available unless explicitly disabled
@@ -197,11 +219,13 @@ def main(args=None):
             )
         )
     )
-    
+
     # Handle quiet mode and logging configuration
     # When showing interactive progress, suppress info logs to avoid interfering
     # But --no-progress should preserve normal log level
-    if args.quiet or (show_progress and not args.verbose and not args.debug and not args.no_progress):
+    if args.quiet or (
+        show_progress and not args.verbose and not args.debug and not args.no_progress
+    ):
         log_level = logging.WARNING  # Suppress info logs when showing progress
     elif args.verbose or args.debug:
         log_level = logging.DEBUG
@@ -226,11 +250,13 @@ def main(args=None):
                 # Create appropriate progress tracker
                 if show_progress:
                     # Use interactive widgets by default when showing progress
-                    use_interactive = args.interactive or (show_progress and ui.RICH_AVAILABLE)
+                    use_interactive = args.interactive or (
+                        show_progress and ui.RICH_AVAILABLE
+                    )
                     progress_tracker = ui.ProgressTracker(
                         interactive=use_interactive, quiet=args.quiet
                     )
-                    
+
                     # When using interactive progress, redirect warnings to rich console
                     if use_interactive and not args.verbose and not args.debug:
                         # Add the rich warning handler

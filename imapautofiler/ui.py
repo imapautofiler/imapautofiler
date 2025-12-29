@@ -18,19 +18,37 @@ from typing import Optional
 
 try:
     from rich.console import Console
+    from rich.layout import Layout
+    from rich.live import Live
+    from rich.panel import Panel
     from rich.progress import (
-        Progress,
-        TaskID,
         BarColumn,
+        MofNCompleteColumn,
+        Progress,
+        SpinnerColumn,
+        TaskID,
         TextColumn,
         TimeElapsedColumn,
         TimeRemainingColumn,
-        MofNCompleteColumn,
     )
+    from rich.table import Table
+    from rich.text import Text
 
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
+
+
+# Color scheme for consistent theming
+class Colors:
+    """Color scheme constants for the UI."""
+
+    PANEL_TITLE = "bold blue"
+    PANEL_BORDER = "blue"
+    PROGRESS_TEXT = "green"
+    METRIC_LABEL = "red"
+    ERROR_VALUE = "red"
+    # All other text uses default terminal color for adaptability
 
 
 class ProgressTracker:
@@ -41,68 +59,264 @@ class ProgressTracker:
         self.quiet = quiet
         self._console: Optional["Console"] = None
         self._progress: Optional["Progress"] = None
+        self._live: Optional["Live"] = None
+        self._layout: Optional["Layout"] = None
         self._overall_task: Optional["TaskID"] = None
         self._mailbox_task: Optional["TaskID"] = None
+
+        # Statistics tracking
+        self._stats = {
+            "total_messages": 0,
+            "processed": 0,
+            "moved": 0,
+            "deleted": 0,
+            "flagged": 0,
+            "errors": 0,
+            "total_mailboxes_overall": 0,
+            "completed_mailboxes": 0,
+        }
+        self._current_subject: str = ""
+        self._current_mailbox: str = ""
 
         if self.interactive:
             self._console = Console()
             self._progress = Progress(
+                SpinnerColumn(),
                 TextColumn("[bold blue]{task.description}"),
-                BarColumn(),
+                BarColumn(bar_width=40),
                 MofNCompleteColumn(),
                 TimeElapsedColumn(),
                 TimeRemainingColumn(),
                 console=self._console,
+                expand=True,
+            )
+
+            # Create the progress tasks upfront
+            self._overall_task = self._progress.add_task(
+                f"[{Colors.PROGRESS_TEXT}]Initializing...", total=1
+            )
+            self._mailbox_task = self._progress.add_task("📁 Waiting...", total=1)
+
+            # Create layout for multi-component display
+            self._layout = Layout()
+            self._layout.split_column(
+                Layout(name="progress", size=4),
+                Layout(name="stats", size=9),
+                Layout(name="current", size=3),
             )
 
     def start(self) -> None:
         """Start the progress tracking."""
-        if self._progress:
-            self._progress.start()
+        if self._progress and self._layout:
+            # Wrap progress in a panel with border
+            progress_panel = Panel(
+                self._progress,
+                title=f"[{Colors.PANEL_TITLE}]Progress",
+                border_style=Colors.PANEL_BORDER,
+            )
+            self._layout["progress"].update(progress_panel)
+            self._update_layout()
+
+            # Wrap the entire layout in a main panel
+            main_panel = Panel(
+                self._layout,
+                title=f"[{Colors.PANEL_TITLE}]imapautofiler",
+                border_style=Colors.PANEL_BORDER,
+                padding=(0, 0),
+                height=19,
+            )
+
+            self._live = Live(main_panel, console=self._console, refresh_per_second=4)
+            self._live.start()
 
     def stop(self) -> None:
         """Stop the progress tracking."""
+        if self._live:
+            self._live.stop()
         if self._progress:
             self._progress.stop()
+        
+        # Show final summary when interactive mode ends
+        if self.interactive and self._console:
+            self._show_final_summary()
+
+    def _show_final_summary(self) -> None:
+        """Display final processing summary after interactive mode ends."""
+        self._console.print("\n")
+        self._console.print(f"[{Colors.PANEL_TITLE}]Processing Complete[/] 🎉\n")
+        
+        # Create summary table
+        summary_table = Table(title="Final Summary", box=None, show_header=False)
+        summary_table.add_column("Metric", style=Colors.METRIC_LABEL, width=15)
+        summary_table.add_column("Count", justify="right", width=10)
+        
+        # Show mailbox completion
+        if "total_mailboxes_overall" in self._stats:
+            completed = self._stats.get("completed_mailboxes", 0)
+            total = self._stats["total_mailboxes_overall"]
+            summary_table.add_row("Mailboxes:", f"{completed}/{total}")
+        
+        # Show message statistics
+        summary_table.add_row("Messages:", str(self._stats["total_messages"]))
+        summary_table.add_row("Processed:", str(self._stats["processed"]))
+        
+        if self._stats["moved"] > 0:
+            summary_table.add_row("Moved:", str(self._stats["moved"]))
+        if self._stats["deleted"] > 0:
+            summary_table.add_row("Deleted:", str(self._stats["deleted"]))
+        if self._stats["flagged"] > 0:
+            summary_table.add_row("Flagged:", str(self._stats["flagged"]))
+        
+        # Show errors prominently if any
+        if self._stats["errors"] > 0:
+            summary_table.add_row("Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]")
+        
+        self._console.print(summary_table)
+        self._console.print()
+
+    def _create_stats_panel(self) -> "Panel":
+        """Create the statistics table wrapped in a panel."""
+        table = Table(box=None, show_header=True)
+        table.add_column("Metric", style=Colors.METRIC_LABEL, width=12)
+        table.add_column("Count", justify="right", width=8)
+        table.add_column("Progress", justify="right", width=12)
+
+        # Show overall mailbox progress if available
+        if "total_mailboxes_overall" in self._stats:
+            completed = self._stats.get("completed_mailboxes", 0)
+            total = self._stats["total_mailboxes_overall"]
+            progress_text = f"{completed}/{total}"
+            table.add_row("Mailboxes", str(completed), progress_text)
+
+        # Add statistics rows with minimal color coding
+        table.add_row("Messages", str(self._stats["total_messages"]), "")
+        table.add_row("Processed", str(self._stats["processed"]), "")
+        table.add_row("Moved", str(self._stats["moved"]), "")
+        table.add_row("Deleted", str(self._stats["deleted"]), "")
+        table.add_row("Flagged", str(self._stats["flagged"]), "")
+        if self._stats["errors"] > 0:
+            table.add_row(
+                "Errors", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}", ""
+            )
+        else:
+            table.add_row("Errors", str(self._stats["errors"]), "")
+
+        return Panel(
+            table,
+            title=f"[{Colors.PANEL_TITLE}]Statistics",
+            border_style=Colors.PANEL_BORDER,
+        )
+
+    def _create_current_panel(self) -> "Panel":
+        """Create the current processing panel."""
+        if self._current_subject:
+            # Truncate subject if too long
+            subject = (
+                self._current_subject[:60] + "..."
+                if len(self._current_subject) > 60
+                else self._current_subject
+            )
+            content = Text(f"📧 {subject}")
+        else:
+            content = Text("⏳ Waiting...")
+
+        return Panel(
+            content,
+            title=f"[{Colors.PANEL_TITLE}]Current: {self._current_mailbox}",
+            border_style=Colors.PANEL_BORDER,
+        )
+
+    def _update_layout(self) -> None:
+        """Update the layout with current data."""
+        if self._layout:
+            self._layout["stats"].update(self._create_stats_panel())
+            self._layout["current"].update(self._create_current_panel())
 
     def start_overall(self, total_mailboxes: int) -> None:
         """Start tracking overall mailbox progress."""
+        self._stats["total_mailboxes"] = 0  # Reset for accurate counting
+        self._stats["total_mailboxes_overall"] = total_mailboxes
+        self._stats["completed_mailboxes"] = 0
+
         if self._progress:
-            self._overall_task = self._progress.add_task(
-                "Processing mailboxes", total=total_mailboxes
+            self._progress.update(
+                self._overall_task,
+                description=f"[{Colors.PROGRESS_TEXT}]Processing mailboxes",
+                total=total_mailboxes,
+                completed=0,
             )
+
+        self._update_layout()
 
     def start_mailbox(self, mailbox_name: str, total_messages: int) -> None:
         """Start tracking current mailbox progress."""
-        if self._progress and self._overall_task is not None:
-            self._progress.update(
-                self._overall_task, description=f"Processing mailbox: {mailbox_name}"
-            )
+        self._current_mailbox = mailbox_name
+        self._stats["total_messages"] += total_messages
 
         if self._progress:
-            self._mailbox_task = self._progress.add_task(
-                f"Messages in {mailbox_name}", total=total_messages
+            # Update the overall task description to show current mailbox
+            completed_mb = self._stats.get("completed_mailboxes", 0)
+            total_mb = self._stats.get("total_mailboxes_overall", 0)
+            self._progress.update(
+                self._overall_task,
+                description=f"[{Colors.PROGRESS_TEXT}]Mailbox {completed_mb + 1}/{total_mb}: {mailbox_name}",
+            )
+
+            # Update the pre-created mailbox messages progress task
+            self._progress.update(
+                self._mailbox_task,
+                description=f"[{Colors.PROGRESS_TEXT}]📁 Messages in {mailbox_name}",
+                total=total_messages,
+                completed=0,
             )
         elif not self.quiet:
             print(f"Processing mailbox: {mailbox_name} ({total_messages} messages)")
 
-    def update_message(self, advance: int = 1) -> None:
+        self._update_layout()
+
+    def update_message(
+        self, advance: int = 1, subject: str = "", action: str = ""
+    ) -> None:
         """Update progress for processed messages."""
+        if subject:
+            self._current_subject = subject
+
+        if action:
+            # Update statistics based on action
+            if action == "move":
+                self._stats["moved"] += advance
+            elif action == "delete":
+                self._stats["deleted"] += advance
+            elif action == "flag":
+                self._stats["flagged"] += advance
+            elif action == "error":
+                self._stats["errors"] += advance
+
+            self._stats["processed"] += advance
+
         if self._progress and self._mailbox_task is not None:
             self._progress.update(self._mailbox_task, advance=advance)
 
+        self._update_layout()
+
     def finish_mailbox(self) -> None:
         """Finish current mailbox and update overall progress."""
+        # Update overall mailbox completion count
+        if "completed_mailboxes" in self._stats:
+            self._stats["completed_mailboxes"] += 1
+
         if self._progress:
-            if self._mailbox_task is not None:
-                self._progress.remove_task(self._mailbox_task)
-                self._mailbox_task = None
-            if self._overall_task is not None:
-                self._progress.update(self._overall_task, advance=1)
+            self._progress.update(self._overall_task, advance=1)
+
+        self._current_subject = ""
+        self._update_layout()
 
     def print(self, message: str) -> None:
         """Print a message, handling rich console if available."""
-        if self._console:
+        if self._console and self._live:
+            # Print to the live display
+            self._console.print(message)
+        elif self._console:
             self._console.print(message)
         else:
             print(message)
@@ -119,11 +333,11 @@ class ProgressTracker:
 
 class RichWarningHandler(logging.Handler):
     """Custom logging handler that sends warnings to rich console."""
-    
+
     def __init__(self, progress_tracker: "ProgressTracker") -> None:
         super().__init__(level=logging.WARNING)
         self.progress_tracker = progress_tracker
-    
+
     def emit(self, record: logging.LogRecord) -> None:
         if record.levelno >= logging.WARNING:
             msg = self.format(record)
@@ -135,32 +349,34 @@ class RichWarningHandler(logging.Handler):
 
 class NullProgressTracker:
     """No-op progress tracker for when progress display is disabled."""
-    
+
     def start(self) -> None:
         pass
-    
+
     def stop(self) -> None:
         pass
-    
+
     def start_overall(self, total_mailboxes: int) -> None:
         pass
-    
+
     def start_mailbox(self, mailbox_name: str, total_messages: int) -> None:
         pass
-    
-    def update_message(self, advance: int = 1) -> None:
+
+    def update_message(
+        self, advance: int = 1, subject: str = "", action: str = ""
+    ) -> None:
         pass
-    
+
     def finish_mailbox(self) -> None:
         pass
-    
+
     def print(self, message: str) -> None:
         print(message)
-    
+
     def __enter__(self) -> "NullProgressTracker":
         self.start()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop()
 
