@@ -13,7 +13,7 @@ jobs:
       matrix:
         hatch-environment:
           - "docs:build"
-          - "test:lint"
+          - "test:precommit"
           - "test:pkglint"
 
     steps:

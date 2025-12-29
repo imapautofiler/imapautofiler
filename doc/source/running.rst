@@ -9,7 +9,7 @@ Run ``imapautofiler`` on the command line.
    $ imapautofiler -h
    usage: imapautofiler [-h] [-v] [--debug] [-c CONFIG_FILE] [--list-mailboxes]
                         [-n] [-i] [-q] [--no-interactive]
-   
+
    options:
      -h, --help            show this help message and exit
      -v, --verbose         report more details about what is happening
@@ -35,8 +35,8 @@ and processes the rules.
 Interactive Progress Display
 ============================
 
-imapautofiler includes rich interactive progress displays that show real-time 
-processing status when run in a capable terminal. The interactive mode is automatically 
+imapautofiler includes rich interactive progress displays that show real-time
+processing status when run in a capable terminal. The interactive mode is automatically
 detected and enabled by default, but can be controlled with command-line options.
 
 .. code-block:: text
@@ -75,19 +75,19 @@ Command Line Options
 ====================
 
 ``-i, --interactive``
-  Force enable rich interactive progress displays, even in environments where 
+  Force enable rich interactive progress displays, even in environments where
   auto-detection might disable them.
 
 ``-q, --quiet``
   Show only warning and error messages, disabling interactive mode. Useful for
   scripts or when you want minimal output with only important messages.
 
-``--no-interactive``  
+``--no-interactive``
   Explicitly disable interactive progress displays and use simple text output.
   Useful for scripts, CI environments, or when redirecting output.
 
 ``-n, --dry-run``
-  Process rules and show what actions would be taken without actually moving, 
+  Process rules and show what actions would be taken without actually moving,
   deleting, or flagging any messages. Excellent for testing rule configurations.
 
 Auto-Detection
@@ -108,7 +108,7 @@ When using interactive mode, you can safely interrupt processing with Ctrl+C.
 The application will:
 
 * Complete processing of the current message
-* Show a progress summary with timing information  
+* Show a progress summary with timing information
 * Display helpful tips for resuming where you left off
 * Safely clean up and restore terminal state
 
@@ -124,7 +124,7 @@ The application will:
    Processed:   45
    Moved:       32
    Deleted:     13
-   
+
    💡 Run again to continue processing remaining mailboxes
 
 

@@ -63,7 +63,7 @@ version-file = "imapautofiler/version.py"
 
 [tool.hatch.envs.test]
 features = ["test"]
-dependencies = ["twine", "check-python-versions", "mypy", "types-PyYAML"]
+dependencies = ["twine", "check-python-versions", "mypy", "types-PyYAML", "pre-commit"]
 [tool.hatch.envs.test.scripts]
 lint = [
   "ruff check imapautofiler",
@@ -77,6 +77,7 @@ pkglint = [
   "twine check dist/*.tar.gz dist/*.whl",
   "check-python-versions --only pyproject.toml,.github/workflows/test.yml",
 ]
+precommit = "pre-commit run --all-files"
 
 [tool.hatch.envs.docs]
 features = ["docs"]

@@ -8,7 +8,7 @@ content. The author uses it to move messages from his "Sent" folder to
 the appropriate archive folders.
 
 The tool features a rich interactive terminal interface with real-time
-progress bars, live statistics, and graceful interrupt handling for 
+progress bars, live statistics, and graceful interrupt handling for
 processing large email archives efficiently and safely.
 
 .. toctree::
