@@ -16,29 +16,26 @@ import logging
 import signal
 import sys
 import time
-from typing import Optional
+from typing import Optional, Any, Callable, Union
 
-try:
-    from rich.console import Console
-    from rich.layout import Layout
-    from rich.live import Live
-    from rich.panel import Panel
-    from rich.progress import (
-        BarColumn,
-        MofNCompleteColumn,
-        Progress,
-        SpinnerColumn,
-        TaskID,
-        TextColumn,
-        TimeElapsedColumn,
-        TimeRemainingColumn,
-    )
-    from rich.table import Table
-    from rich.text import Text
+from rich.console import Console
+from rich.layout import Layout
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+from rich.table import Table
+from rich.text import Text
 
-    RICH_AVAILABLE = True
-except ImportError:
-    RICH_AVAILABLE = False
+RICH_AVAILABLE = True
 
 
 # Color scheme for consistent theming
@@ -58,21 +55,14 @@ class ProgressTracker:
     """Tracks progress for mailbox processing with fallback for environments without rich."""
 
     def __init__(self, interactive: bool = False, quiet: bool = False) -> None:
-        # Enhanced interactive detection with graceful fallback
-        self.interactive = interactive and RICH_AVAILABLE
-        if interactive and not RICH_AVAILABLE:
-            # Log the fallback for user awareness (only once)
-            import logging
-            logging.getLogger(__name__).info(
-                "Rich library not available, falling back to basic progress display"
-            )
+        self.interactive = interactive
         self.quiet = quiet
-        self._console: Optional["Console"] = None
-        self._progress: Optional["Progress"] = None
-        self._live: Optional["Live"] = None
-        self._layout: Optional["Layout"] = None
-        self._overall_task: Optional["TaskID"] = None
-        self._mailbox_task: Optional["TaskID"] = None
+        self._console: Optional[Console] = None
+        self._progress: Optional[Progress] = None
+        self._live: Optional[Live] = None
+        self._layout: Optional[Layout] = None
+        self._overall_task: Optional[TaskID] = None
+        self._mailbox_task: Optional[TaskID] = None
 
         # Statistics tracking
         self._stats = {
@@ -92,11 +82,15 @@ class ProgressTracker:
         self._current_mailbox: str = ""
         self._start_time: Optional[float] = None
         self._interrupted: bool = False
-        self._original_sigint_handler: Optional[signal.Handlers] = None
-        
+        self._original_sigint_handler: Optional[
+            Union[Callable[[int, Any], Any], int]
+        ] = None
+
         # Recent actions tracking (most recent first)
         self._recent_actions: list[str] = []
-        self._max_actions = self._calculate_max_actions()  # Dynamic based on terminal height
+        self._max_actions = (
+            self._calculate_max_actions()
+        )  # Dynamic based on terminal height
 
         if self.interactive:
             self._console = Console()
@@ -128,9 +122,6 @@ class ProgressTracker:
 
     def _calculate_max_actions(self) -> int:
         """Calculate maximum actions to display based on terminal height."""
-        if not RICH_AVAILABLE:
-            return 10  # Default fallback
-        
         try:
             console = Console()
             terminal_height = console.size.height
@@ -145,7 +136,9 @@ class ProgressTracker:
         """Handle Ctrl+C interruption gracefully."""
         self._interrupted = True
         if self.interactive and self._console:
-            self._console.print(f"\n\n⚠️  [{Colors.INTERRUPT_TEXT}]Interrupt received[/]. Processing will stop after current message...\n")
+            self._console.print(
+                f"\n\n⚠️  [{Colors.INTERRUPT_TEXT}]Interrupt received[/]. Processing will stop after current message...\n"
+            )
 
     def start(self) -> None:
         """Start the progress tracking."""
@@ -153,7 +146,9 @@ class ProgressTracker:
 
         # Set up interrupt handler for graceful shutdown
         if self.interactive:
-            self._original_sigint_handler = signal.signal(signal.SIGINT, self._handle_interrupt)
+            self._original_sigint_handler = signal.signal(
+                signal.SIGINT, self._handle_interrupt
+            )
 
         if self._progress and self._layout:
             # Wrap progress in a panel with border
@@ -171,7 +166,7 @@ class ProgressTracker:
                 title=f"[{Colors.PANEL_TITLE}]imapautofiler",
                 border_style=Colors.PANEL_BORDER,
                 padding=(0, 0),
-                #height=19,
+                # height=19,
             )
 
             self._live = Live(main_panel, console=self._console, refresh_per_second=4)
@@ -194,11 +189,16 @@ class ProgressTracker:
 
     def _show_final_summary(self) -> None:
         """Display final processing summary after interactive mode ends."""
+        if not self._console:
+            return
+
         self._console.print("\n")
 
         # Show different title based on completion status
         if self._interrupted:
-            self._console.print(f"[{Colors.INTERRUPT_TEXT}]Processing Interrupted[/] ⚠️\n")
+            self._console.print(
+                f"[{Colors.INTERRUPT_TEXT}]Processing Interrupted[/] ⚠️\n"
+            )
         else:
             self._console.print(f"[{Colors.PANEL_TITLE}]Processing Complete[/] 🎉\n")
 
@@ -212,7 +212,7 @@ class ProgressTracker:
         if self._start_time is not None:
             elapsed = time.time() - self._start_time
             if elapsed >= 60:
-                time_str = f"{elapsed/60:.1f}m"
+                time_str = f"{elapsed / 60:.1f}m"
             else:
                 time_str = f"{elapsed:.1f}s"
             summary_table.add_row("Runtime:", time_str)
@@ -222,7 +222,9 @@ class ProgressTracker:
             completed = self._stats.get("completed_mailboxes", 0)
             total = self._stats["total_mailboxes_overall"]
             if self._interrupted and completed < total:
-                summary_table.add_row("Mailboxes:", f"[{Colors.INTERRUPT_TEXT}]{completed}/{total}[/]")
+                summary_table.add_row(
+                    "Mailboxes:", f"[{Colors.INTERRUPT_TEXT}]{completed}/{total}[/]"
+                )
             else:
                 summary_table.add_row("Mailboxes:", f"{completed}/{total}")
 
@@ -240,17 +242,21 @@ class ProgressTracker:
 
         # Show errors prominently if any
         if self._stats["errors"] > 0:
-            summary_table.add_row("Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]")
+            summary_table.add_row(
+                "Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]"
+            )
 
         self._console.print(summary_table)
 
         # Show additional context for interruptions
         if self._interrupted:
-            self._console.print(f"\n[dim]💡 Run again to continue processing remaining mailboxes[/]")
+            self._console.print(
+                "\n[dim]💡 Run again to continue processing remaining mailboxes[/]"
+            )
 
         self._console.print()
 
-    def _create_stats_panel(self) -> "Panel":
+    def _create_stats_panel(self) -> Panel:
         """Create the statistics table wrapped in a panel."""
         table = Table(box=None, show_header=True)
         table.add_column("Metric", style=Colors.METRIC_LABEL, width=12)
@@ -284,7 +290,7 @@ class ProgressTracker:
             border_style=Colors.PANEL_BORDER,
         )
 
-    def _create_current_panel(self) -> "Panel":
+    def _create_current_panel(self) -> Panel:
         """Create the current processing panel."""
         if self._current_subject:
             # Create multi-line content showing subject, from, and to
@@ -326,7 +332,7 @@ class ProgressTracker:
             border_style=Colors.PANEL_BORDER,
         )
 
-    def _create_actions_panel(self) -> "Panel":
+    def _create_actions_panel(self) -> Panel:
         """Create the recent actions panel."""
         if not self._recent_actions:
             content = Text("⏳ No actions taken yet...", style="dim")
@@ -334,12 +340,14 @@ class ProgressTracker:
             lines = []
             for i, action in enumerate(self._recent_actions):
                 # Add timestamp-style prefix and action
-                icon = "✓" if i == 0 else "•"  # Recent action gets checkmark, others get bullets
+                icon = (
+                    "✓" if i == 0 else "•"
+                )  # Recent action gets checkmark, others get bullets
                 style = "green" if i == 0 else ""  # Highlight most recent
                 # Truncate very long action messages to fit panel width
                 truncated_action = action[:80] + "..." if len(action) > 80 else action
                 lines.append(Text(f"{icon} {truncated_action}", style=style))
-            
+
             # Combine all lines
             content = Text()
             for i, line in enumerate(lines):
@@ -405,7 +413,13 @@ class ProgressTracker:
         self._update_layout()
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = "", action_message: str = ""
+        self,
+        advance: int = 1,
+        subject: str = "",
+        action: str = "",
+        from_addr: str = "",
+        to_addr: str = "",
+        action_message: str = "",
     ) -> None:
         """Update progress for processed messages."""
         if subject:
@@ -423,7 +437,7 @@ class ProgressTracker:
         if action_message:
             self._recent_actions.insert(0, action_message)  # Add to front (most recent)
             # Keep only the most recent actions
-            self._recent_actions = self._recent_actions[:self._max_actions]
+            self._recent_actions = self._recent_actions[: self._max_actions]
 
         if action:
             # Update statistics based on action
@@ -513,7 +527,13 @@ class NullProgressTracker:
         pass
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = "", action_message: str = ""
+        self,
+        advance: int = 1,
+        subject: str = "",
+        action: str = "",
+        from_addr: str = "",
+        to_addr: str = "",
+        action_message: str = "",
     ) -> None:
         pass
 
@@ -537,40 +557,44 @@ class NullProgressTracker:
 
 def is_interactive_terminal() -> bool:
     """Check if we're running in an interactive terminal with full capabilities."""
-    if not RICH_AVAILABLE:
-        return False
-
     # Check if stdout is a TTY (not redirected)
     if not sys.stdout.isatty():
         return False
 
     # Check for common non-interactive environments
     import os
+
     ci_environments = {
-        'CI', 'CONTINUOUS_INTEGRATION', 'GITHUB_ACTIONS',
-        'GITLAB_CI', 'JENKINS_URL', 'BUILDKITE'
+        "CI",
+        "CONTINUOUS_INTEGRATION",
+        "GITHUB_ACTIONS",
+        "GITLAB_CI",
+        "JENKINS_URL",
+        "BUILDKITE",
     }
     if any(env in os.environ for env in ci_environments):
         return False
 
     # Check terminal capabilities
-    term = os.environ.get('TERM', '').lower()
-    if term in ('dumb', 'unknown', '') or 'emacs' in term:
+    term = os.environ.get("TERM", "").lower()
+    if term in ("dumb", "unknown", "") or "emacs" in term:
         return False
 
     return True
 
 
-def should_use_progress(interactive_requested: bool = False,
-                       no_interactive_requested: bool = False,
-                       verbose: bool = False,
-                       debug: bool = False) -> bool:
+def should_use_progress(
+    interactive_requested: bool = False,
+    no_interactive_requested: bool = False,
+    verbose: bool = False,
+    debug: bool = False,
+) -> bool:
     """Determine if progress display should be enabled based on environment and options."""
     # Explicit user preferences override everything
     if no_interactive_requested:
         return False
     if interactive_requested:
-        return RICH_AVAILABLE  # Honor request if rich is available
+        return True
 
     # Auto-detection: enable if we have good terminal support
     # but disable for verbose/debug modes where log output is important

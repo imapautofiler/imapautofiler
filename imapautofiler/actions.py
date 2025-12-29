@@ -260,7 +260,9 @@ class Sort(Action):
     ) -> str:
         dest_mailbox = self._get_dest_mailbox(message_id, message)
         subject = i18n.get_header_value(message, "subject") or "No Subject"
-        return f"Sort: {subject[:50]}{'...' if len(subject) > 50 else ''} → {dest_mailbox}"
+        return (
+            f"Sort: {subject[:50]}{'...' if len(subject) > 50 else ''} → {dest_mailbox}"
+        )
 
     def invoke(
         self,

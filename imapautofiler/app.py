@@ -16,7 +16,6 @@ import argparse
 import imaplib
 import logging
 import sys
-from typing import Union
 
 from imapautofiler import actions, client, config, rules, ui, i18n
 
@@ -95,16 +94,20 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                 LOG.debug("message %s: %s", msg_id, subject)
 
             # Update progress tracker with current message
-            progress_tracker.update_message(advance=0, subject=subject, from_addr=from_addr, to_addr=to_addr)
+            progress_tracker.update_message(
+                advance=0, subject=subject, from_addr=from_addr, to_addr=to_addr
+            )
 
             action_taken = False
             for rule in mailbox_rules:
                 if rule.check(message):
                     action = actions.factory(rule.get_action(), cfg)
                     try:
-                        action_message = action.report(conn, mailbox_name, msg_id, message)
+                        action_message = action.report(
+                            conn, mailbox_name, msg_id, message
+                        )
                         LOG.info(action_message)  # Log the action message
-                        
+
                         if not dry_run:
                             action.invoke(conn, mailbox_name, msg_id, message)
 
@@ -118,7 +121,9 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                                 action_type = "flag"
 
                         # Update progress with action taken and action message
-                        progress_tracker.update_message(advance=1, action=action_type, action_message=action_message)
+                        progress_tracker.update_message(
+                            advance=1, action=action_type, action_message=action_message
+                        )
                         action_taken = True
 
                     except Exception as err:
@@ -220,9 +225,10 @@ def main(args=None):
     # Determine if we should show interactive progress using enhanced auto-detection
     show_progress = ui.should_use_progress(
         interactive_requested=args.interactive,
-        no_interactive_requested=args.no_interactive or args.quiet,  # quiet disables interactive
+        no_interactive_requested=args.no_interactive
+        or args.quiet,  # quiet disables interactive
         verbose=args.verbose,
-        debug=args.debug
+        debug=args.debug,
     )
 
     # Handle quiet mode and logging configuration
@@ -231,7 +237,9 @@ def main(args=None):
     elif args.verbose or args.debug:
         log_level = logging.DEBUG
     elif show_progress:
-        log_level = logging.WARNING  # Suppress info logs when showing interactive progress
+        log_level = (
+            logging.WARNING
+        )  # Suppress info logs when showing interactive progress
     else:
         log_level = logging.INFO
 
@@ -253,9 +261,7 @@ def main(args=None):
                 # Create appropriate progress tracker
                 if show_progress:
                     # Use interactive widgets by default when showing progress
-                    use_interactive = args.interactive or (
-                        show_progress and ui.RICH_AVAILABLE
-                    )
+                    use_interactive = args.interactive or show_progress
                     progress_tracker = ui.ProgressTracker(
                         interactive=use_interactive, quiet=args.quiet
                     )
