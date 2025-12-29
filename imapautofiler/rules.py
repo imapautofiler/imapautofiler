@@ -208,7 +208,7 @@ class HeaderExactValue(_HeaderMatcher):
         self._header_name = rule_data["name"]
         self._value = rule_data.get("value", "").lower()
 
-    def _check_rule(self, header_value):
+    def _check_rule(self, header_value: str) -> bool:
         self._log.debug("%r == %r", self._value, header_value)
         return self._value == header_value.lower()
 
@@ -218,11 +218,11 @@ class HeaderSubString(_HeaderMatcher):
 
     _log = logging.getLogger("header-substring")
 
-    def __init__(self, rule_data, cfg):
+    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(rule_data, cfg)
         self._value = rule_data.get("substring", "").lower()
 
-    def _check_rule(self, header_value):
+    def _check_rule(self, header_value: str) -> bool:
         self._log.debug("%r in %r", self._value, header_value)
         return self._value in header_value.lower()
 
@@ -232,12 +232,12 @@ class HeaderRegex(_HeaderMatcher):
 
     _log = logging.getLogger("header-regex")
 
-    def __init__(self, rule_data, cfg):
+    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(rule_data, cfg)
         self._value = rule_data.get("regex", "")
         self._regex = re.compile(self._value)
 
-    def _check_rule(self, header_value):
+    def _check_rule(self, header_value: str) -> bool:
         self._log.debug("%r matches %r", self._regex, header_value)
         return bool(self._regex.search(header_value))
 
@@ -248,11 +248,11 @@ class HeaderExists(Rule):
     NAME = "header-exists"
     _log = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
+    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(rule_data, cfg)
         self._header_name = rule_data["name"]
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         self._log.debug("%r exists", self._header_name)
         return self._header_name in message
 
@@ -263,7 +263,7 @@ class IsMailingList(HeaderExists):
     NAME = "is-mailing-list"
     _log = logging.getLogger(NAME)
 
-    def __init__(self, rule_data, cfg):
+    def __init__(self, rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         if "name" not in rule_data:
             rule_data["name"] = "list-id"
         super().__init__(rule_data, cfg)
@@ -278,13 +278,13 @@ class TimeLimit(Rule):
 
     def __init__(
         self,
-        rule_data,
-        cfg,
-    ):
+        rule_data: dict[str, typing.Any],
+        cfg: dict[str, typing.Any],
+    ) -> None:
         super().__init__(rule_data, cfg)
         self._age = rule_data["time-limit"]["age"]
 
-    def check(self, message):
+    def check(self, message: email.message.Message) -> bool:
         header_value = i18n.get_header_value(message, "date")
         try:
             date = parsedate_to_datetime(header_value)
@@ -307,13 +307,14 @@ class TimeLimit(Rule):
             if date <= time_limit:
                 return True
             else:
-                return 0
+                return False
+        return False
 
 
 _lookup_table = lookup.make_lookup_table(Rule, "NAME")
 
 
-def factory(rule_data, cfg):
+def factory(rule_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> Rule:
     """Create a rule processor.
 
     :param rule_data: portion of configuration describing the rule
