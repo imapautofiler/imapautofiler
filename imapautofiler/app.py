@@ -17,7 +17,7 @@ import imaplib
 import logging
 import sys
 
-from imapautofiler import actions, client, config, rules
+from imapautofiler import actions, client, config, rules, ui
 
 LOG = logging.getLogger("imapautofiler")
 
@@ -39,7 +39,7 @@ def list_mailboxes(cfg, debug, conn):
         print(f)
 
 
-def process_rules(cfg, debug, conn, dry_run=False):
+def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
     """Run the rules from the configuration file.
 
     :param cfg: full configuration
@@ -54,6 +54,9 @@ def process_rules(cfg, debug, conn, dry_run=False):
     num_processed = 0
     num_errors = 0
 
+    # Start overall progress tracking
+    progress_tracker.start_overall(len(cfg["mailboxes"]))
+
     for mailbox in cfg["mailboxes"]:
         mailbox_name = mailbox["name"]
         LOG.info("starting mailbox %r", mailbox_name)
@@ -61,6 +64,10 @@ def process_rules(cfg, debug, conn, dry_run=False):
         mailbox_rules = [rules.factory(r, cfg) for r in mailbox["rules"]]
 
         mailbox_iter = conn.get_mailbox_iterator(mailbox_name)
+
+        # Start mailbox-specific progress tracking
+        progress_tracker.start_mailbox(mailbox_name, len(mailbox_iter))
+
         for msg_id, message in mailbox_iter:
             num_messages += 1
             if debug:
@@ -94,11 +101,17 @@ def process_rules(cfg, debug, conn, dry_run=False):
             else:
                 LOG.debug("no rules match")
 
+            # Update message progress
+            progress_tracker.update_message()
+
             # break
 
         # Remove messages that we just moved.
         conn.expunge()
         LOG.info("completed mailbox %r", mailbox_name)
+
+        # Finish mailbox progress tracking
+        progress_tracker.finish_mailbox()
     LOG.info("encountered %s messages, processed %s", num_messages, num_processed)
     if num_errors:
         LOG.info("encountered %d errors", num_errors)
@@ -138,12 +151,59 @@ def main(args=None):
         action="store_true",
         help="process the rules without taking any action",
     )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        default=False,
+        action="store_true",
+        help="enable rich interactive progress displays",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        default=False,
+        action="store_true",
+        help="suppress logs, show only progress",
+    )
+    parser.add_argument(
+        "--progress",
+        default=False,
+        action="store_true",
+        help="show progress bars (subset of interactive mode)",
+    )
+    parser.add_argument(
+        "--no-progress",
+        default=False,
+        action="store_true",
+        help="disable progress bars and interactive mode",
+    )
     args = parser.parse_args()
 
     if args.debug:
         imaplib.Debug = 4
 
-    if args.verbose or args.debug:
+    # Determine if we should show progress first
+    # Default to showing progress when rich is available unless explicitly disabled
+    show_progress = (
+        not args.no_progress  # Respect explicit disable flag
+        and (
+            args.interactive
+            or args.progress
+            or (
+                not args.verbose
+                and not args.debug
+                and hasattr(ui, "RICH_AVAILABLE")
+                and ui.RICH_AVAILABLE
+            )
+        )
+    )
+    
+    # Handle quiet mode and logging configuration
+    # When showing interactive progress, suppress info logs to avoid interfering
+    # But --no-progress should preserve normal log level
+    if args.quiet or (show_progress and not args.verbose and not args.debug and not args.no_progress):
+        log_level = logging.WARNING  # Suppress info logs when showing progress
+    elif args.verbose or args.debug:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
@@ -156,18 +216,38 @@ def main(args=None):
 
     try:
         cfg = config.get_config(args.config_file)
+        if cfg is None:
+            parser.error(f"Could not load configuration from {args.config_file}")
         conn = client.open_connection(cfg)
         try:
             if args.list_mailboxes:
                 list_mailboxes(cfg, args.debug, conn)
             else:
-                process_rules(cfg, args.debug, conn, args.dry_run)
+                # Create appropriate progress tracker
+                if show_progress:
+                    # Use interactive widgets by default when showing progress
+                    use_interactive = args.interactive or (show_progress and ui.RICH_AVAILABLE)
+                    progress_tracker = ui.ProgressTracker(
+                        interactive=use_interactive, quiet=args.quiet
+                    )
+                    
+                    # When using interactive progress, redirect warnings to rich console
+                    if use_interactive and not args.verbose and not args.debug:
+                        # Add the rich warning handler
+                        rich_handler = ui.RichWarningHandler(progress_tracker)
+                        rich_handler.setFormatter(logging.Formatter("%(message)s"))
+                        logging.getLogger().addHandler(rich_handler)
+                else:
+                    progress_tracker = ui.NullProgressTracker()
+
+                with progress_tracker:
+                    process_rules(cfg, args.debug, conn, args.dry_run, progress_tracker)
         finally:
             conn.close()
     except Exception as err:
         if args.debug:
             raise
-        parser.error(err)
+        parser.error(str(err))
     return 0
 
 

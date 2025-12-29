@@ -12,6 +12,7 @@
 
 """User interface components for interactive mode."""
 
+import logging
 import sys
 from typing import Optional
 
@@ -113,6 +114,54 @@ class ProgressTracker:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit."""
+        self.stop()
+
+
+class RichWarningHandler(logging.Handler):
+    """Custom logging handler that sends warnings to rich console."""
+    
+    def __init__(self, progress_tracker: "ProgressTracker") -> None:
+        super().__init__(level=logging.WARNING)
+        self.progress_tracker = progress_tracker
+    
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.levelno >= logging.WARNING:
+            msg = self.format(record)
+            if record.levelno >= logging.ERROR:
+                self.progress_tracker.print(f"[bold red]Error:[/] {msg}")
+            else:
+                self.progress_tracker.print(f"[bold yellow]Warning:[/] {msg}")
+
+
+class NullProgressTracker:
+    """No-op progress tracker for when progress display is disabled."""
+    
+    def start(self) -> None:
+        pass
+    
+    def stop(self) -> None:
+        pass
+    
+    def start_overall(self, total_mailboxes: int) -> None:
+        pass
+    
+    def start_mailbox(self, mailbox_name: str, total_messages: int) -> None:
+        pass
+    
+    def update_message(self, advance: int = 1) -> None:
+        pass
+    
+    def finish_mailbox(self) -> None:
+        pass
+    
+    def print(self, message: str) -> None:
+        print(message)
+    
+    def __enter__(self) -> "NullProgressTracker":
+        self.start()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop()
 
 
