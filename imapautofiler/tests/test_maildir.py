@@ -14,11 +14,14 @@ import email.utils
 import mailbox
 import os.path
 import textwrap
+import typing
 import unittest
 
 import fixtures
 
 from imapautofiler import client
+
+F = typing.TypeVar("F", bound=fixtures.Fixture)
 
 
 class MaildirFixture(fixtures.Fixture):
@@ -67,7 +70,7 @@ class MaildirTest(unittest.TestCase):
         )
         self.client = client.MaildirClient({"maildir": self.tmpdir})
 
-    def useFixture(self, f: fixtures.Fixture) -> fixtures.Fixture:
+    def useFixture(self, f: F) -> F:
         f.setUp()
         self.addCleanup(f.cleanUp)
         return f
