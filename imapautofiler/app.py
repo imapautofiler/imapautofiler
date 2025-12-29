@@ -67,7 +67,7 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
         if progress_tracker.is_interrupted():
             LOG.info("Processing interrupted by user, stopping")
             break
-            
+
         mailbox_name = mailbox["name"]
         LOG.info("starting mailbox %r", mailbox_name)
 
@@ -83,7 +83,7 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
             if progress_tracker.is_interrupted():
                 LOG.info("Processing interrupted by user")
                 break
-                
+
             num_messages += 1
             subject = i18n.get_header_value(message, "subject") or "No Subject"
             from_addr = i18n.get_header_value(message, "from") or ""
@@ -202,7 +202,7 @@ def main(args=None):
         "--quiet",
         default=False,
         action="store_true",
-        help="suppress logs, show only progress",
+        help="show only warning and error messages, disable interactive mode",
     )
     parser.add_argument(
         "--no-interactive",
@@ -218,20 +218,18 @@ def main(args=None):
     # Determine if we should show interactive progress using enhanced auto-detection
     show_progress = ui.should_use_progress(
         interactive_requested=args.interactive,
-        no_interactive_requested=args.no_interactive,
+        no_interactive_requested=args.no_interactive or args.quiet,  # quiet disables interactive
         verbose=args.verbose,
         debug=args.debug
     )
 
     # Handle quiet mode and logging configuration
-    # When showing interactive progress, suppress info logs to avoid interfering
-    # But --no-interactive should preserve normal log level
-    if args.quiet or (
-        show_progress and not args.verbose and not args.debug and not args.no_interactive
-    ):
-        log_level = logging.WARNING  # Suppress info logs when showing progress
+    if args.quiet:
+        log_level = logging.WARNING  # Quiet mode shows warnings and above
     elif args.verbose or args.debug:
         log_level = logging.DEBUG
+    elif show_progress:
+        log_level = logging.WARNING  # Suppress info logs when showing interactive progress
     else:
         log_level = logging.INFO
 

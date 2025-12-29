@@ -18,7 +18,7 @@ Run ``imapautofiler`` on the command line.
      --list-mailboxes      instead of processing rules, print a list of mailboxes
      -n, --dry-run         process the rules without taking any action
      -i, --interactive     enable rich interactive progress displays
-     -q, --quiet           suppress logs, show only progress
+     -q, --quiet           show only warning and error messages, disable interactive mode
      --no-interactive      disable interactive progress displays
 
 When run with no arguments, it reads the default configuration file
@@ -79,8 +79,8 @@ Command Line Options
   auto-detection might disable them.
 
 ``-q, --quiet``
-  Suppress log output and show only progress information. Useful when you want
-  to see processing progress without verbose logging.
+  Show only warning and error messages, disabling interactive mode. Useful for
+  scripts or when you want minimal output with only important messages.
 
 ``--no-interactive``  
   Explicitly disable interactive progress displays and use simple text output.
