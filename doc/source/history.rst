@@ -5,14 +5,24 @@
 Unreleased
 ==========
 
+- Add rich interactive terminal interface with real-time progress bars,
+  live statistics, current message display, and recent actions feed.
+- Add ``--quiet`` flag to show only warning and error messages while
+  disabling interactive mode.
+- Add intelligent auto-detection of terminal capabilities with CI
+  environment support for seamless operation across different environments.
+- Refactor action system to return formatted strings for better UI integration
+  while maintaining backward compatibility with logging.
+- Add graceful interrupt handling with Ctrl+C showing progress summaries
+  and safe cleanup.
 - Add protection for ``time-limit`` and ``sort-by-year`` in case the
   ``Date`` header cannot be parsed.
 - Improve progress logging by reporting when each mailbox starts and
   showing the source mailbox along with other details for each action
   being taken.
-- Correct a problem with the handlig of unparsable dates in `SortByDate` so that
-  messages without a `Date` header or with a `Date` header that cannot be parsed
-  are sorted into a special mailbox called `unparsable-date`.
+- Correct a problem with the handling of unparsable dates in `SortByDate` so that
+  messages without a ``Date`` header or with a ``Date`` header that cannot be parsed
+  are sorted into a special mailbox called ``unparsable-date``.
 - Convert packaging from setuptools to hatch and hatchling.
 - Add type hints and mypy checking to linter.
 - Change minimum python version to 3.13.
