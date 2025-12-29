@@ -114,7 +114,7 @@ class Move(Action):
     NAME = "move"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(action_data, cfg)
 
     def _get_dest_mailbox(self, message_id: str, message: email.message.Message) -> str:
@@ -402,12 +402,12 @@ class Flag(Action):
     NAME = "flag"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(action_data, cfg)
 
     def report(
         self,
-        conn,
+        conn: client.Client,
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
@@ -435,7 +435,7 @@ class Unflag(Action):
     NAME = "unflag"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(action_data, cfg)
 
     def report(
@@ -468,7 +468,7 @@ class MarkRead(Action):
     NAME = "mark_read"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(action_data, cfg)
 
     def report(
@@ -501,12 +501,12 @@ class MarkUnread(Action):
     NAME = "mark_unread"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]) -> None:
         super().__init__(action_data, cfg)
 
     def report(
         self,
-        conn,
+        conn: client.Client,
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
