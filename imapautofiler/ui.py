@@ -77,6 +77,7 @@ class ProgressTracker:
         # Statistics tracking
         self._stats = {
             "total_messages": 0,
+            "seen": 0,
             "processed": 0,
             "moved": 0,
             "deleted": 0,
@@ -116,7 +117,7 @@ class ProgressTracker:
             self._layout = Layout()
             self._layout.split_column(
                 Layout(name="progress", size=4),
-                Layout(name="stats", size=10),
+                Layout(name="stats", size=11),
                 Layout(name="current", size=5),
             )
 
@@ -129,11 +130,11 @@ class ProgressTracker:
     def start(self) -> None:
         """Start the progress tracking."""
         self._start_time = time.time()
-        
+
         # Set up interrupt handler for graceful shutdown
         if self.interactive:
             self._original_sigint_handler = signal.signal(signal.SIGINT, self._handle_interrupt)
-        
+
         if self._progress and self._layout:
             # Wrap progress in a panel with border
             progress_panel = Panel(
@@ -161,7 +162,7 @@ class ProgressTracker:
         # Restore original signal handler
         if self._original_sigint_handler is not None:
             signal.signal(signal.SIGINT, self._original_sigint_handler)
-            
+
         if self._live:
             self._live.stop()
         if self._progress:
@@ -174,7 +175,7 @@ class ProgressTracker:
     def _show_final_summary(self) -> None:
         """Display final processing summary after interactive mode ends."""
         self._console.print("\n")
-        
+
         # Show different title based on completion status
         if self._interrupted:
             self._console.print(f"[{Colors.INTERRUPT_TEXT}]Processing Interrupted[/] ⚠️\n")
@@ -207,6 +208,7 @@ class ProgressTracker:
 
         # Show message statistics
         summary_table.add_row("Messages:", str(self._stats["total_messages"]))
+        summary_table.add_row("Seen:", str(self._stats["seen"]))
         summary_table.add_row("Processed:", str(self._stats["processed"]))
 
         if self._stats["moved"] > 0:
@@ -221,11 +223,11 @@ class ProgressTracker:
             summary_table.add_row("Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]")
 
         self._console.print(summary_table)
-        
+
         # Show additional context for interruptions
         if self._interrupted:
             self._console.print(f"\n[dim]💡 Run again to continue processing remaining mailboxes[/]")
-        
+
         self._console.print()
 
     def _create_stats_panel(self) -> "Panel":
@@ -244,6 +246,7 @@ class ProgressTracker:
 
         # Add statistics rows with minimal color coding
         table.add_row("Messages", str(self._stats["total_messages"]), "")
+        table.add_row("Seen", str(self._stats["seen"]), "")
         table.add_row("Processed", str(self._stats["processed"]), "")
         table.add_row("Moved", str(self._stats["moved"]), "")
         table.add_row("Deleted", str(self._stats["deleted"]), "")
@@ -364,6 +367,10 @@ class ProgressTracker:
         if to_addr:
             self._current_to = to_addr
 
+        # Always increment seen count when advancing (regardless of action)
+        if advance > 0:
+            self._stats["seen"] += advance
+
         if action:
             # Update statistics based on action
             if action == "move":
@@ -478,31 +485,31 @@ def is_interactive_terminal() -> bool:
     """Check if we're running in an interactive terminal with full capabilities."""
     if not RICH_AVAILABLE:
         return False
-    
+
     # Check if stdout is a TTY (not redirected)
     if not sys.stdout.isatty():
         return False
-    
+
     # Check for common non-interactive environments
     import os
     ci_environments = {
-        'CI', 'CONTINUOUS_INTEGRATION', 'GITHUB_ACTIONS', 
+        'CI', 'CONTINUOUS_INTEGRATION', 'GITHUB_ACTIONS',
         'GITLAB_CI', 'JENKINS_URL', 'BUILDKITE'
     }
     if any(env in os.environ for env in ci_environments):
         return False
-    
+
     # Check terminal capabilities
     term = os.environ.get('TERM', '').lower()
     if term in ('dumb', 'unknown', '') or 'emacs' in term:
         return False
-    
+
     return True
 
 
-def should_use_progress(interactive_requested: bool = False, 
+def should_use_progress(interactive_requested: bool = False,
                        no_interactive_requested: bool = False,
-                       verbose: bool = False, 
+                       verbose: bool = False,
                        debug: bool = False) -> bool:
     """Determine if progress display should be enabled based on environment and options."""
     # Explicit user preferences override everything
@@ -510,10 +517,10 @@ def should_use_progress(interactive_requested: bool = False,
         return False
     if interactive_requested:
         return RICH_AVAILABLE  # Honor request if rich is available
-    
+
     # Auto-detection: enable if we have good terminal support
     # but disable for verbose/debug modes where log output is important
     if verbose or debug:
         return False
-    
+
     return is_interactive_terminal()
