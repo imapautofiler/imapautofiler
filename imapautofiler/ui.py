@@ -76,6 +76,8 @@ class ProgressTracker:
             "completed_mailboxes": 0,
         }
         self._current_subject: str = ""
+        self._current_from: str = ""
+        self._current_to: str = ""
         self._current_mailbox: str = ""
 
         if self.interactive:
@@ -101,8 +103,8 @@ class ProgressTracker:
             self._layout = Layout()
             self._layout.split_column(
                 Layout(name="progress", size=4),
-                Layout(name="stats", size=9),
-                Layout(name="current", size=3),
+                Layout(name="stats", size=10),
+                Layout(name="current", size=5),
             )
 
     def start(self) -> None:
@@ -123,7 +125,7 @@ class ProgressTracker:
                 title=f"[{Colors.PANEL_TITLE}]imapautofiler",
                 border_style=Colors.PANEL_BORDER,
                 padding=(0, 0),
-                height=19,
+                #height=19,
             )
 
             self._live = Live(main_panel, console=self._console, refresh_per_second=4)
@@ -135,7 +137,7 @@ class ProgressTracker:
             self._live.stop()
         if self._progress:
             self._progress.stop()
-        
+
         # Show final summary when interactive mode ends
         if self.interactive and self._console:
             self._show_final_summary()
@@ -144,33 +146,33 @@ class ProgressTracker:
         """Display final processing summary after interactive mode ends."""
         self._console.print("\n")
         self._console.print(f"[{Colors.PANEL_TITLE}]Processing Complete[/] 🎉\n")
-        
+
         # Create summary table
         summary_table = Table(title="Final Summary", box=None, show_header=False)
         summary_table.add_column("Metric", style=Colors.METRIC_LABEL, width=15)
         summary_table.add_column("Count", justify="right", width=10)
-        
+
         # Show mailbox completion
         if "total_mailboxes_overall" in self._stats:
             completed = self._stats.get("completed_mailboxes", 0)
             total = self._stats["total_mailboxes_overall"]
             summary_table.add_row("Mailboxes:", f"{completed}/{total}")
-        
+
         # Show message statistics
         summary_table.add_row("Messages:", str(self._stats["total_messages"]))
         summary_table.add_row("Processed:", str(self._stats["processed"]))
-        
+
         if self._stats["moved"] > 0:
             summary_table.add_row("Moved:", str(self._stats["moved"]))
         if self._stats["deleted"] > 0:
             summary_table.add_row("Deleted:", str(self._stats["deleted"]))
         if self._stats["flagged"] > 0:
             summary_table.add_row("Flagged:", str(self._stats["flagged"]))
-        
+
         # Show errors prominently if any
         if self._stats["errors"] > 0:
             summary_table.add_row("Errors:", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}[/]")
-        
+
         self._console.print(summary_table)
         self._console.print()
 
@@ -210,13 +212,36 @@ class ProgressTracker:
     def _create_current_panel(self) -> "Panel":
         """Create the current processing panel."""
         if self._current_subject:
-            # Truncate subject if too long
+            # Create multi-line content showing subject, from, and to
+            lines = []
+
+            # Subject line
             subject = (
                 self._current_subject[:60] + "..."
                 if len(self._current_subject) > 60
                 else self._current_subject
             )
-            content = Text(f"📧 {subject}")
+            lines.append(f"📧 {subject}")
+
+            # From line
+            from_addr = (
+                self._current_from[:50] + "..."
+                if len(self._current_from) > 50
+                else self._current_from
+            )
+            if from_addr:
+                lines.append(f"👤 From: {from_addr}")
+
+            # To line
+            to_addr = (
+                self._current_to[:50] + "..."
+                if len(self._current_to) > 50
+                else self._current_to
+            )
+            if to_addr:
+                lines.append(f"📮 To: {to_addr}")
+
+            content = Text("\n".join(lines))
         else:
             content = Text("⏳ Waiting...")
 
@@ -275,11 +300,15 @@ class ProgressTracker:
         self._update_layout()
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = ""
+        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = ""
     ) -> None:
         """Update progress for processed messages."""
         if subject:
             self._current_subject = subject
+        if from_addr:
+            self._current_from = from_addr
+        if to_addr:
+            self._current_to = to_addr
 
         if action:
             # Update statistics based on action
@@ -309,6 +338,8 @@ class ProgressTracker:
             self._progress.update(self._overall_task, advance=1)
 
         self._current_subject = ""
+        self._current_from = ""
+        self._current_to = ""
         self._update_layout()
 
     def print(self, message: str) -> None:
@@ -363,7 +394,7 @@ class NullProgressTracker:
         pass
 
     def update_message(
-        self, advance: int = 1, subject: str = "", action: str = ""
+        self, advance: int = 1, subject: str = "", action: str = "", from_addr: str = "", to_addr: str = ""
     ) -> None:
         pass
 

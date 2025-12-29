@@ -71,6 +71,8 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
         for msg_id, message in mailbox_iter:
             num_messages += 1
             subject = i18n.get_header_value(message, "subject") or "No Subject"
+            from_addr = i18n.get_header_value(message, "from") or ""
+            to_addr = i18n.get_header_value(message, "to") or ""
 
             if debug:
                 print(message.as_string().rstrip())
@@ -78,7 +80,7 @@ def process_rules(cfg, debug, conn, dry_run=False, progress_tracker=None):
                 LOG.debug("message %s: %s", msg_id, subject)
 
             # Update progress tracker with current message
-            progress_tracker.update_message(advance=0, subject=subject)
+            progress_tracker.update_message(advance=0, subject=subject, from_addr=from_addr, to_addr=to_addr)
 
             action_taken = False
             for rule in mailbox_rules:
