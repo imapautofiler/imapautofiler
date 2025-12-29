@@ -21,7 +21,7 @@ import mailbox
 import os
 import ssl
 import typing
-from typing import Iterator, Generator
+from typing import Iterator, Generator, Sized
 
 import imapclient
 
@@ -29,6 +29,36 @@ from . import secrets
 from .config import tobool
 
 LOG = logging.getLogger("imapautofiler.client")
+
+
+class MailboxIterator(abc.ABC, Sized):
+    """Abstract base class for mailbox message iterators.
+
+    Implements Python's iterator protocol and provides message count.
+    """
+
+    def __init__(self, mailbox_name: str) -> None:
+        self.mailbox_name = mailbox_name
+        self._iterator: Iterator[tuple[str, email.message.Message]] | None = None
+
+    @abc.abstractmethod
+    def __len__(self) -> int:
+        """Return the number of messages in the mailbox."""
+
+    @abc.abstractmethod
+    def _create_iterator(self) -> Iterator[tuple[str, email.message.Message]]:
+        """Create a fresh iterator over mailbox messages."""
+
+    def __iter__(self) -> Iterator[tuple[str, email.message.Message]]:
+        """Return iterator over (message_id, message) tuples."""
+        self._iterator = self._create_iterator()
+        return self._iterator
+
+    def __next__(self) -> tuple[str, email.message.Message]:
+        """Get next message from iterator."""
+        if self._iterator is None:
+            raise StopIteration
+        return next(self._iterator)
 
 
 def open_connection(cfg: dict[str, typing.Any]) -> "Client":
@@ -56,6 +86,10 @@ class Client(metaclass=abc.ABCMeta):
 
         Produces tuples of (message_id, message).
         """
+
+    @abc.abstractmethod
+    def get_mailbox_iterator(self, mailbox_name: str) -> MailboxIterator:
+        """Return an iterator for the specified mailbox."""
 
     @abc.abstractmethod
     def set_flagged(
@@ -133,6 +167,38 @@ class Client(metaclass=abc.ABCMeta):
         "Close the connection, flushing any pending changes."
 
 
+class IMAPMailboxIterator(MailboxIterator):
+    """Iterator for IMAP mailbox messages with lazy loading."""
+
+    def __init__(self, conn: "imapclient.IMAPClient", mailbox_name: str) -> None:
+        super().__init__(mailbox_name)
+        self._conn = conn
+        self._msg_ids: list[str] | None = None
+
+    def _ensure_msg_ids(self) -> list[str]:
+        """Ensure message IDs are loaded and return them."""
+        if self._msg_ids is None:
+            self._conn.select_folder(self.mailbox_name)
+            search_result = self._conn.search(["ALL"])
+            self._msg_ids = search_result if isinstance(search_result, list) else []
+        return self._msg_ids
+
+    def __len__(self) -> int:
+        """Return the number of messages in the mailbox."""
+        return len(self._ensure_msg_ids())
+
+    def _create_iterator(self) -> Iterator[tuple[str, email.message.Message]]:
+        """Create a fresh iterator that lazily loads messages."""
+        msg_ids = self._ensure_msg_ids()
+
+        for msg_id in msg_ids:
+            email_parser = email.parser.BytesFeedParser()
+            response = self._conn.fetch([msg_id], ["BODY.PEEK[HEADER]"])
+            email_parser.feed(response[msg_id][b"BODY[HEADER]"])
+            message = email_parser.close()
+            yield (msg_id, message)
+
+
 class IMAPClient(Client):
     def __init__(self, cfg: dict[str, typing.Any]) -> None:
         super().__init__(cfg)
@@ -172,14 +238,22 @@ class IMAPClient(Client):
     def mailbox_iterate(
         self, mailbox_name: str
     ) -> Iterator[tuple[str, email.message.Message]]:
-        self._conn.select_folder(mailbox_name)
-        msg_ids: list[str] = self._conn.search(["ALL"])
-        for msg_id in msg_ids:
-            email_parser = email.parser.BytesFeedParser()
-            response = self._conn.fetch([msg_id], ["BODY.PEEK[HEADER]"])
-            email_parser.feed(response[msg_id][b"BODY[HEADER]"])
-            message = email_parser.close()
-            yield (msg_id, message)
+        """Iterate over messages from the mailbox.
+
+        DEPRECATED: Use get_mailbox_iterator() instead.
+        """
+        import warnings
+
+        warnings.warn(
+            "mailbox_iterate is deprecated, use get_mailbox_iterator instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return iter(self.get_mailbox_iterator(mailbox_name))
+
+    def get_mailbox_iterator(self, mailbox_name: str) -> MailboxIterator:
+        """Return an iterator for the specified mailbox."""
+        return IMAPMailboxIterator(self._conn, mailbox_name)
 
     def _ensure_mailbox(self, name: str) -> None:
         if self._mbox_names is None:
@@ -242,6 +316,36 @@ class IMAPClient(Client):
         self._conn.logout()
 
 
+class MaildirMailboxIterator(MailboxIterator):
+    """Iterator for Maildir mailbox messages with eager loading."""
+
+    def __init__(
+        self,
+        locked_maildir_fn: typing.Callable[
+            [], contextlib.AbstractContextManager[mailbox.Maildir]
+        ],
+        mailbox_name: str,
+    ) -> None:
+        super().__init__(mailbox_name)
+        self._locked_maildir_fn = locked_maildir_fn
+        self._results: list[tuple[str, email.message.Message]] | None = None
+
+    def _ensure_results(self) -> list[tuple[str, email.message.Message]]:
+        """Ensure messages are loaded and return them."""
+        if self._results is None:
+            with self._locked_maildir_fn() as box:
+                self._results = list(box.iteritems())
+        return self._results
+
+    def __len__(self) -> int:
+        """Return the number of messages in the mailbox."""
+        return len(self._ensure_results())
+
+    def _create_iterator(self) -> Iterator[tuple[str, email.message.Message]]:
+        """Create a fresh iterator over pre-loaded messages."""
+        return iter(self._ensure_results())
+
+
 class MaildirClient(Client):
     def __init__(self, cfg: dict[str, typing.Any]) -> None:
         super().__init__(cfg)
@@ -269,9 +373,22 @@ class MaildirClient(Client):
     def mailbox_iterate(
         self, mailbox_name: str
     ) -> Iterator[tuple[str, email.message.Message]]:
-        with self._locked(mailbox_name) as box:
-            results = list(box.iteritems())
-        return iter(results)
+        """Iterate over messages from the mailbox.
+
+        DEPRECATED: Use get_mailbox_iterator() instead.
+        """
+        import warnings
+
+        warnings.warn(
+            "mailbox_iterate is deprecated, use get_mailbox_iterator instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return iter(self.get_mailbox_iterator(mailbox_name))
+
+    def get_mailbox_iterator(self, mailbox_name: str) -> MailboxIterator:
+        """Return an iterator for the specified mailbox."""
+        return MaildirMailboxIterator(lambda: self._locked(mailbox_name), mailbox_name)
 
     def set_flagged(
         self,

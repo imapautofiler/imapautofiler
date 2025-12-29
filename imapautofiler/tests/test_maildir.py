@@ -79,13 +79,13 @@ class MaildirTest(unittest.TestCase):
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)
 
     def test_copy_message(self):
         self.src_mbox.make_message(subject="added by test")
-        messages = list(self.client.mailbox_iterate(self.src_mbox.name))
+        messages = list(self.client.get_mailbox_iterator(self.src_mbox.name))
         for msg_id, msg in messages:
             if msg["subject"] != "added by test":
                 continue
@@ -98,13 +98,13 @@ class MaildirTest(unittest.TestCase):
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
 
     def test_move_message(self):
         self.src_mbox.make_message(subject="added by test")
-        messages = list(self.client.mailbox_iterate(self.src_mbox.name))
+        messages = list(self.client.get_mailbox_iterator(self.src_mbox.name))
         for msg_id, msg in messages:
             if msg["subject"] != "added by test":
                 continue
@@ -117,13 +117,13 @@ class MaildirTest(unittest.TestCase):
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
         # No longer appears in source maildir
         expected = set(["init maildir"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)

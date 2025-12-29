@@ -60,7 +60,8 @@ def process_rules(cfg, debug, conn, dry_run=False):
 
         mailbox_rules = [rules.factory(r, cfg) for r in mailbox["rules"]]
 
-        for msg_id, message in conn.mailbox_iterate(mailbox_name):
+        mailbox_iter = conn.get_mailbox_iterator(mailbox_name)
+        for msg_id, message in mailbox_iter:
             num_messages += 1
             if debug:
                 print(message.as_string().rstrip())
