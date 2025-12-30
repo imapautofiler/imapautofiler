@@ -36,8 +36,6 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-RICH_AVAILABLE = True
-
 # UI configuration constants
 MAX_LOG_ENTRIES = 20
 
