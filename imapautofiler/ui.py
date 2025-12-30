@@ -38,6 +38,7 @@ from rich.text import Text
 
 # UI configuration constants
 MAX_LOG_ENTRIES = 20
+MAX_ACTION_ENTRIES = 6  # Based on panel height of 10 (content ~8 lines)
 
 
 # Color scheme for consistent theming
@@ -97,9 +98,6 @@ class ProgressTracker:
 
         # Recent actions tracking (most recent first)
         self._recent_actions: list[str] = []
-        self._max_actions = (
-            self._calculate_max_actions()
-        )  # Dynamic based on terminal height
 
         # Log entries tracking (most recent first)
         self._recent_logs: list[dict[str, Any]] = []
@@ -129,9 +127,10 @@ class ProgressTracker:
             # Build layout components conditionally
             layout_components = [
                 Layout(name="progress", size=4),
-                Layout(name="stats", size=11),
+                Layout(
+                    name="stats_actions", size=10
+                ),  # Horizontal row for stats + actions
                 Layout(name="current", size=5),
-                Layout(name="actions", size=7),
             ]
 
             # Only add logs panel if show_logs is enabled
@@ -142,9 +141,11 @@ class ProgressTracker:
 
             self._layout.split_column(*layout_components)
 
-    def _calculate_max_actions(self) -> int:
-        """Calculate maximum actions to display (fixed to 5)."""
-        return 5
+            # Create horizontal split for statistics and actions
+            self._layout["stats_actions"].split_row(
+                Layout(name="stats", size=22),  # Fixed width for statistics
+                Layout(name="actions"),  # Dynamic width for actions
+            )
 
     def _handle_interrupt(self, signum: int, frame: types.FrameType | None) -> None:
         """Handle Ctrl+C interruption gracefully."""
@@ -275,28 +276,18 @@ class ProgressTracker:
         table = Table(box=None, show_header=True)
         table.add_column("Metric", style=Colors.METRIC_LABEL, width=12)
         table.add_column("Count", justify="right", width=8)
-        table.add_column("Progress", justify="right", width=12)
-
-        # Show overall mailbox progress if available
-        if "total_mailboxes_overall" in self._stats:
-            completed = self._stats.get("completed_mailboxes", 0)
-            total = self._stats["total_mailboxes_overall"]
-            progress_text = f"{completed}/{total}"
-            table.add_row("Mailboxes", str(completed), progress_text)
 
         # Add statistics rows with minimal color coding
-        table.add_row("Messages", str(self._stats["total_messages"]), "")
-        table.add_row("Seen", str(self._stats["seen"]), "")
-        table.add_row("Processed", str(self._stats["processed"]), "")
-        table.add_row("Moved", str(self._stats["moved"]), "")
-        table.add_row("Deleted", str(self._stats["deleted"]), "")
-        table.add_row("Flagged", str(self._stats["flagged"]), "")
+        table.add_row("Messages", str(self._stats["total_messages"]))
+        table.add_row("Seen", str(self._stats["seen"]))
+        table.add_row("Processed", str(self._stats["processed"]))
+        table.add_row("Moved", str(self._stats["moved"]))
+        table.add_row("Deleted", str(self._stats["deleted"]))
+        table.add_row("Flagged", str(self._stats["flagged"]))
         if self._stats["errors"] > 0:
-            table.add_row(
-                "Errors", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}", ""
-            )
+            table.add_row("Errors", f"[{Colors.ERROR_VALUE}]{self._stats['errors']}")
         else:
-            table.add_row("Errors", str(self._stats["errors"]), "")
+            table.add_row("Errors", str(self._stats["errors"]))
 
         return Panel(
             table,
@@ -524,7 +515,7 @@ class ProgressTracker:
         if action_message:
             self._recent_actions.insert(0, action_message)  # Add to front (most recent)
             # Keep only the most recent actions
-            self._recent_actions = self._recent_actions[: self._max_actions]
+            self._recent_actions = self._recent_actions[:MAX_ACTION_ENTRIES]
 
         if action:
             # Update statistics based on action
