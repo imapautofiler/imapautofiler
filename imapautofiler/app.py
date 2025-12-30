@@ -18,7 +18,7 @@ import logging
 import sys
 import typing
 
-from imapautofiler import actions, client, config, rules, ui, i18n
+from imapautofiler import actions, client, config, i18n, rules, ui
 
 LOG = logging.getLogger("imapautofiler")
 
@@ -234,29 +234,42 @@ def main(args: list[str] | None = None) -> int:
     # Determine if we should show interactive progress using enhanced auto-detection
     show_progress = ui.should_use_progress(
         interactive_requested=parsed_args.interactive,
-        no_interactive_requested=parsed_args.no_interactive
-        or parsed_args.quiet,  # quiet disables interactive
-        verbose=parsed_args.verbose,
-        debug=parsed_args.debug,
+        no_interactive_requested=parsed_args.no_interactive,
     )
+    use_interactive = parsed_args.interactive or show_progress
 
-    # Handle quiet mode and logging configuration
     if parsed_args.quiet:
-        log_level = logging.WARNING  # Quiet mode shows warnings and above
+        log_level = logging.WARNING
     elif parsed_args.verbose or parsed_args.debug:
         log_level = logging.DEBUG
-    elif show_progress:
-        log_level = (
-            logging.WARNING
-        )  # Suppress info logs when showing interactive progress
     else:
         log_level = logging.INFO
 
-    logging.basicConfig(
-        level=log_level,
-        format="%(name)s: %(message)s",
-    )
-    logging.debug("starting")
+    # Create appropriate progress tracker
+    progress_tracker: ui.ProgressTracker | ui.NullProgressTracker
+    if show_progress:
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+
+        # Use interactive widgets by default when showing progress
+        # Only show logs panel when log level is debug
+        show_logs = log_level <= logging.DEBUG
+        progress_tracker = ui.ProgressTracker(
+            interactive=use_interactive,
+            quiet=parsed_args.quiet,
+            show_logs=show_logs,
+        )
+
+        # Add the rich log handler to capture all log output
+        rich_handler = ui.RichLogHandler(progress_tracker)
+        rich_handler.setFormatter(logging.Formatter("%(message)s"))
+        root_logger.addHandler(rich_handler)
+    else:
+        logging.basicConfig(
+            level=log_level,
+            format="%(name)s: %(message)s",
+        )
+        progress_tracker = ui.NullProgressTracker()
 
     try:
         cfg = config.get_config(parsed_args.config_file)
@@ -267,28 +280,6 @@ def main(args: list[str] | None = None) -> int:
             if parsed_args.list_mailboxes:
                 list_mailboxes(cfg, parsed_args.debug, conn)
             else:
-                # Create appropriate progress tracker
-                progress_tracker: ui.ProgressTracker | ui.NullProgressTracker
-                if show_progress:
-                    # Use interactive widgets by default when showing progress
-                    use_interactive = parsed_args.interactive or show_progress
-                    progress_tracker = ui.ProgressTracker(
-                        interactive=use_interactive, quiet=parsed_args.quiet
-                    )
-
-                    # When using interactive progress, redirect warnings to rich console
-                    if (
-                        use_interactive
-                        and not parsed_args.verbose
-                        and not parsed_args.debug
-                    ):
-                        # Add the rich warning handler
-                        rich_handler = ui.RichWarningHandler(progress_tracker)
-                        rich_handler.setFormatter(logging.Formatter("%(message)s"))
-                        logging.getLogger().addHandler(rich_handler)
-                else:
-                    progress_tracker = ui.NullProgressTracker()
-
                 with progress_tracker:
                     process_rules(
                         cfg,

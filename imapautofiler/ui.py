@@ -38,6 +38,9 @@ from rich.text import Text
 
 RICH_AVAILABLE = True
 
+# UI configuration constants
+MAX_LOG_ENTRIES = 20
+
 
 # Color scheme for consistent theming
 class Colors:
@@ -49,15 +52,24 @@ class Colors:
     METRIC_LABEL = "red"
     ERROR_VALUE = "red"
     INTERRUPT_TEXT = "bold red"
+    # Log level colors
+    LOG_DEBUG = "dim"
+    LOG_INFO = "blue"
+    LOG_WARNING = "yellow"
+    LOG_ERROR = "red"
+    LOG_CRITICAL = "bold red"
     # All other text uses default terminal color for adaptability
 
 
 class ProgressTracker:
     """Tracks progress for mailbox processing with fallback for environments without rich."""
 
-    def __init__(self, interactive: bool = False, quiet: bool = False) -> None:
+    def __init__(
+        self, interactive: bool = False, quiet: bool = False, show_logs: bool = False
+    ) -> None:
         self.interactive = interactive
         self.quiet = quiet
+        self.show_logs = show_logs
         self._console: Console | None = None
         self._progress: Progress | None = None
         self._live: Live | None = None
@@ -91,6 +103,9 @@ class ProgressTracker:
             self._calculate_max_actions()
         )  # Dynamic based on terminal height
 
+        # Log entries tracking (most recent first)
+        self._recent_logs: list[dict[str, Any]] = []
+
         if self.interactive:
             self._console = Console()
             self._progress = Progress(
@@ -112,24 +127,26 @@ class ProgressTracker:
 
             # Create layout for multi-component display
             self._layout = Layout()
-            self._layout.split_column(
+
+            # Build layout components conditionally
+            layout_components = [
                 Layout(name="progress", size=4),
                 Layout(name="stats", size=11),
                 Layout(name="current", size=5),
-                Layout(name="actions"),  # Dynamic size - takes remaining space
-            )
+                Layout(name="actions", size=7),
+            ]
+
+            # Only add logs panel if show_logs is enabled
+            if self.show_logs:
+                layout_components.append(
+                    Layout(name="logs")
+                )  # Dynamic size - takes remaining space
+
+            self._layout.split_column(*layout_components)
 
     def _calculate_max_actions(self) -> int:
-        """Calculate maximum actions to display based on terminal height."""
-        try:
-            console = Console()
-            terminal_height = console.size.height
-            # Reserve space for: progress (4) + stats (11) + current (5) + borders/padding (~5) = 25
-            # Use remaining space for actions, with minimum of 5 and maximum of 20
-            available_height = terminal_height - 25
-            return max(5, min(20, available_height))
-        except Exception:
-            return 10  # Fallback if size detection fails
+        """Calculate maximum actions to display (fixed to 5)."""
+        return 5
 
     def _handle_interrupt(self, signum: int, frame: types.FrameType | None) -> None:
         """Handle Ctrl+C interruption gracefully."""
@@ -360,12 +377,85 @@ class ProgressTracker:
             border_style=Colors.PANEL_BORDER,
         )
 
+    def _create_logs_panel(self) -> Panel:
+        """Create the logs panel."""
+        if not self._recent_logs:
+            content = Text("📝 No logs yet...", style="dim")
+        else:
+            lines = []
+            for log_entry in self._recent_logs:
+                level = log_entry["level"]
+                message = log_entry["message"]
+                timestamp = log_entry["timestamp"]
+
+                # Choose color based on log level
+                if level >= logging.CRITICAL:
+                    color = Colors.LOG_CRITICAL
+                    icon = "🔴"
+                elif level >= logging.ERROR:
+                    color = Colors.LOG_ERROR
+                    icon = "❌"
+                elif level >= logging.WARNING:
+                    color = Colors.LOG_WARNING
+                    icon = "⚠️"
+                elif level >= logging.INFO:
+                    color = Colors.LOG_INFO
+                    icon = "ℹ️"
+                else:  # DEBUG
+                    color = Colors.LOG_DEBUG
+                    icon = "🔍"
+
+                # Truncate very long log messages to fit panel width
+                truncated_message = (
+                    message[:100] + "..." if len(message) > 100 else message
+                )
+                lines.append(
+                    Text(f"{icon} {timestamp} {truncated_message}", style=color)
+                )
+
+            # Combine all lines
+            content = Text()
+            for i, line in enumerate(lines):
+                if i > 0:
+                    content.append("\n")
+                content.append_text(line)
+
+        return Panel(
+            content,
+            title=f"[{Colors.PANEL_TITLE}]Logs",
+            border_style=Colors.PANEL_BORDER,
+        )
+
     def _update_layout(self) -> None:
         """Update the layout with current data."""
         if self._layout:
             self._layout["stats"].update(self._create_stats_panel())
             self._layout["current"].update(self._create_current_panel())
             self._layout["actions"].update(self._create_actions_panel())
+            # Only update logs panel if it exists (when show_logs is enabled)
+            if self.show_logs:
+                try:
+                    self._layout["logs"].update(self._create_logs_panel())
+                except KeyError:
+                    # Logs panel doesn't exist, skip update
+                    pass
+
+    def add_log_entry(self, level: int, message: str) -> None:
+        """Add a new log entry to the recent logs list."""
+        # Only track logs if show_logs is enabled
+        if not self.show_logs:
+            return
+
+        timestamp = time.strftime("%H:%M:%S")
+        log_entry = {
+            "level": level,
+            "message": message,
+            "timestamp": timestamp,
+        }
+        self._recent_logs.insert(0, log_entry)  # Add to front (most recent first)
+        # Trim to max size
+        if len(self._recent_logs) > MAX_LOG_ENTRIES:
+            self._recent_logs = self._recent_logs[:MAX_LOG_ENTRIES]
 
     def start_overall(self, total_mailboxes: int) -> None:
         """Start tracking overall mailbox progress."""
@@ -499,20 +589,32 @@ class ProgressTracker:
         self.stop()
 
 
-class RichWarningHandler(logging.Handler):
-    """Custom logging handler that sends warnings to rich console."""
+class RichLogHandler(logging.Handler):
+    """Custom logging handler that sends all log messages to the interactive UI."""
 
     def __init__(self, progress_tracker: "ProgressTracker") -> None:
-        super().__init__(level=logging.WARNING)
+        super().__init__(level=logging.DEBUG)
         self.progress_tracker = progress_tracker
 
     def emit(self, record: logging.LogRecord) -> None:
-        if record.levelno >= logging.WARNING:
+        try:
             msg = self.format(record)
-            if record.levelno >= logging.ERROR:
-                self.progress_tracker.print(f"[bold red]Error:[/] {msg}")
-            else:
-                self.progress_tracker.print(f"[bold yellow]Warning:[/] {msg}")
+            # Add to log entries for display
+            self.progress_tracker.add_log_entry(record.levelno, msg)
+
+            # For warnings and errors, also print directly (backward compatibility)
+            if record.levelno >= logging.WARNING:
+                if record.levelno >= logging.ERROR:
+                    self.progress_tracker.print(f"[bold red]Error:[/] {msg}")
+                else:
+                    self.progress_tracker.print(f"[bold yellow]Warning:[/] {msg}")
+        except Exception:
+            # Don't let logging errors crash the application
+            pass
+
+
+# Keep the old class name for backward compatibility
+RichWarningHandler = RichLogHandler
 
 
 class NullProgressTracker:
@@ -595,8 +697,6 @@ def is_interactive_terminal() -> bool:
 def should_use_progress(
     interactive_requested: bool = False,
     no_interactive_requested: bool = False,
-    verbose: bool = False,
-    debug: bool = False,
 ) -> bool:
     """Determine if progress display should be enabled based on environment and options."""
     # Explicit user preferences override everything
@@ -606,8 +706,4 @@ def should_use_progress(
         return True
 
     # Auto-detection: enable if we have good terminal support
-    # but disable for verbose/debug modes where log output is important
-    if verbose or debug:
-        return False
-
     return is_interactive_terminal()
