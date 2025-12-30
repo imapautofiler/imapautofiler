@@ -2,8 +2,20 @@
  History
 =========
 
+
 Unreleased
 ==========
+
+- Enhance interactive mode with conditional log panel display that appears
+  only when debug logging is enabled (``--verbose`` or ``--debug`` flags).
+- Refactor statistics and actions panels to share horizontal space with
+  fixed-width statistics and dynamic-width actions for better space utilization.
+- Remove mailbox progress indicator from statistics panel and optimize
+  layout heights based on actual content requirements.
+
+
+2.0.0
+=====
 
 - Add rich interactive terminal interface with real-time progress bars,
   live statistics, current message display, and recent actions feed.
