@@ -158,6 +158,3 @@ texinfo_documents = [
      author, 'imapautofiler', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-

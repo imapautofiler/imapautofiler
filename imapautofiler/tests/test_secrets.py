@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import typing
 import unittest
 import unittest.mock as mock
 
@@ -17,7 +18,7 @@ from imapautofiler import secrets
 
 
 class TestFixedPassword(unittest.TestCase):
-    def test_get_password(self):
+    def test_get_password(self) -> None:
         self.assertEqual(
             mock.sentinel.Password,
             secrets.FixedPasswordSecret(mock.sentinel.Password).get_password(),
@@ -25,15 +26,16 @@ class TestFixedPassword(unittest.TestCase):
 
 
 class TestInteractivePassword(unittest.TestCase):
-    def test_returns_getpass(self):
+    def test_returns_getpass(self) -> None:
         with mock.patch("getpass.getpass") as getpass:
             self.assertEqual(
-                getpass.return_value, secrets.AskPassword(None, None).get_password()
+                getpass.return_value,
+                secrets.AskPassword("hostname", "username").get_password(),
             )
 
 
 class TestKeyringPassword(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fixture = secrets.KeyringPasswordSecret("hostname", "username")
         patcher = mock.patch("getpass.getpass")
         self.getpass = patcher.start()
@@ -45,12 +47,12 @@ class TestKeyringPassword(unittest.TestCase):
         self.set_password = patcher.start()
         self.addCleanup(patcher.stop)
 
-    def test_get_password_in_keychain(self):
+    def test_get_password_in_keychain(self) -> None:
         self.get_password.return_value = mock.sentinel.Password
 
         self.assertEqual(mock.sentinel.Password, self.fixture.get_password())
 
-    def test_get_password_missing_sets_password(self):
+    def test_get_password_missing_sets_password(self) -> None:
         self.get_password.side_effect = [None, mock.sentinel.Password]
         self.assertEqual(mock.sentinel.Password, self.fixture.get_password())
 
@@ -60,20 +62,26 @@ class TestKeyringPassword(unittest.TestCase):
 
 
 class TestGetSecretFromConfig(unittest.TestCase):
-    def configured(self, **server_args):
+    def configured(
+        self, **server_args: typing.Any
+    ) -> list[
+        secrets.FixedPasswordSecret
+        | secrets.KeyringPasswordSecret
+        | secrets.AskPassword
+    ]:
         server_args.setdefault("hostname", "hostname")
         server_args.setdefault("username", "username")
         return list(secrets.configure_providers({"server": server_args}))
 
-    def test_configure_providers_has_fixed_when_config_has_password(self):
+    def test_configure_providers_has_fixed_when_config_has_password(self) -> None:
         self.assertIsInstance(
             self.configured(password="a password")[0], secrets.FixedPasswordSecret
         )
 
-    def test_configure_providers_includes_keyring_with_keyring_enabled(self):
+    def test_configure_providers_includes_keyring_with_keyring_enabled(self) -> None:
         ps = self.configured(use_keyring=True)
         self.assertTrue(any(isinstance(p, secrets.KeyringPasswordSecret) for p in ps))
 
-    def test_configure_providers_excludes_getpass_with_keyring_enabled(self):
+    def test_configure_providers_excludes_getpass_with_keyring_enabled(self) -> None:
         providers = self.configured(use_keyring=True)
         self.assertFalse(any(isinstance(p, secrets.AskPassword) for p in providers))

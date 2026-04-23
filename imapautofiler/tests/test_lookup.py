@@ -16,7 +16,7 @@ from imapautofiler import lookup
 
 
 class TestLookupTable(unittest.TestCase):
-    def test_create(self):
+    def test_create(self) -> None:
         class A:
             NAME = "a"
 

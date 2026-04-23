@@ -49,8 +49,8 @@ class Action(metaclass=abc.ABCMeta):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        "Log a message explaining what action will be taken."
+    ) -> str:
+        "Return a message explaining what action will be taken."
 
     @abc.abstractmethod
     def invoke(
@@ -114,7 +114,9 @@ class Move(Action):
     NAME = "move"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(
+        self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(action_data, cfg)
 
     def _get_dest_mailbox(self, message_id: str, message: email.message.Message) -> str:
@@ -129,14 +131,10 @@ class Move(Action):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s) to %s",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-            self._get_dest_mailbox(message_id, message),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        dest = self._get_dest_mailbox(message_id, message)
+        return f"Move: {subject[:50]}{'...' if len(subject) > 50 else ''} → {dest}"
 
     def invoke(
         self,
@@ -261,14 +259,11 @@ class Sort(Action):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
+    ) -> str:
         dest_mailbox = self._get_dest_mailbox(message_id, message)
-        self._log.info(
-            "%s[%s] (%s) to %s",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-            dest_mailbox,
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return (
+            f"Sort: {subject[:50]}{'...' if len(subject) > 50 else ''} → {dest_mailbox}"
         )
 
     def invoke(
@@ -381,13 +376,9 @@ class Delete(Action):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s)",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return f"Delete: {subject[:50]}{'...' if len(subject) > 50 else ''}"
 
     def invoke(
         self,
@@ -413,22 +404,20 @@ class Flag(Action):
     NAME = "flag"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(
+        self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(action_data, cfg)
 
     def report(
         self,
-        conn,
+        conn: client.Client,
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s)",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return f"Flag: {subject[:50]}{'...' if len(subject) > 50 else ''}"
 
     def invoke(
         self,
@@ -450,7 +439,9 @@ class Unflag(Action):
     NAME = "unflag"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(
+        self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(action_data, cfg)
 
     def report(
@@ -459,13 +450,9 @@ class Unflag(Action):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s)",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return f"Unflag: {subject[:50]}{'...' if len(subject) > 50 else ''}"
 
     def invoke(
         self,
@@ -487,7 +474,9 @@ class MarkRead(Action):
     NAME = "mark_read"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(
+        self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(action_data, cfg)
 
     def report(
@@ -496,13 +485,9 @@ class MarkRead(Action):
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s)",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return f"Mark read: {subject[:50]}{'...' if len(subject) > 50 else ''}"
 
     def invoke(
         self,
@@ -524,22 +509,20 @@ class MarkUnread(Action):
     NAME = "mark_unread"
     _log: logging.Logger = logging.getLogger(NAME)
 
-    def __init__(self, action_data, cfg):
+    def __init__(
+        self, action_data: dict[str, typing.Any], cfg: dict[str, typing.Any]
+    ) -> None:
         super().__init__(action_data, cfg)
 
     def report(
         self,
-        conn,
+        conn: client.Client,
         mailbox_name: str,
         message_id: str,
         message: email.message.Message,
-    ) -> None:
-        self._log.info(
-            "%s[%s] (%s)",
-            mailbox_name,
-            message_id,
-            i18n.get_header_value(message, "subject"),
-        )
+    ) -> str:
+        subject = i18n.get_header_value(message, "subject") or "No Subject"
+        return f"Mark unread: {subject[:50]}{'...' if len(subject) > 50 else ''}"
 
     def invoke(
         self,

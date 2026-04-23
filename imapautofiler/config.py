@@ -33,7 +33,8 @@ def get_config(filename: str) -> dict[str, typing.Any] | None:
     LOG.debug("loading config from %s", full_filename)
     with open(full_filename, mode="r", encoding="utf-8") as f:
         # TODO(dhellmann): Add type checking to the YAML parser.
-        return yaml.safe_load(stream=f)
+        result: dict[str, typing.Any] | None = yaml.safe_load(stream=f)
+        return result
 
 
 def tobool(value: str | bool) -> bool:

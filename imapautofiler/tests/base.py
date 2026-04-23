@@ -11,6 +11,7 @@
 #    under the License.
 
 import email.parser
+import typing
 import unittest
 from datetime import datetime, timedelta, timezone
 from email.header import Header
@@ -18,12 +19,12 @@ from email.message import Message
 from email.utils import format_datetime
 
 
-def construct_message(headers):
+def construct_message(headers: dict[str, str]) -> str:
     msg = Message()
     encoding = "utf-8"
 
     for header, value in headers.items():
-        msg[header] = Header(value, encoding)
+        msg[header] = str(Header(value, encoding))
 
     return msg.as_string()
 
@@ -84,19 +85,19 @@ class TestCase(unittest.TestCase):
     _without_offset_msg = None
     _without_date_msg = None
 
-    def useFixture(self, f):
+    def useFixture(self, f: typing.Any) -> typing.Any:
         f.setUp()
         self.addCleanup(f.cleanUp)
         return f
 
     @property
-    def msg(self):
+    def msg(self) -> Message:
         if self._msg is None:
             self._msg = email.parser.Parser().parsestr(construct_message(MESSAGE))
         return self._msg
 
     @property
-    def i18n_msg(self):
+    def i18n_msg(self) -> Message:
         if self._i18n_msg is None:
             self._i18n_msg = email.parser.Parser().parsestr(
                 construct_message(I18N_MESSAGE)
@@ -104,7 +105,7 @@ class TestCase(unittest.TestCase):
         return self._i18n_msg
 
     @property
-    def recent_msg(self):
+    def recent_msg(self) -> Message:
         if self._recent_msg is None:
             self._recent_msg = email.parser.Parser().parsestr(
                 construct_message(RECENT_MESSAGE)
@@ -112,7 +113,7 @@ class TestCase(unittest.TestCase):
         return self._recent_msg
 
     @property
-    def without_offset_msg(self):
+    def without_offset_msg(self) -> Message:
         if self._without_offset_msg is None:
             self._without_offset_msg = email.parser.Parser().parsestr(
                 construct_message(WITHOUT_OFFSET_MESSAGE)
@@ -120,7 +121,7 @@ class TestCase(unittest.TestCase):
         return self._without_offset_msg
 
     @property
-    def without_date_msg(self):
+    def without_date_msg(self) -> Message:
         if self._without_date_msg is None:
             self._without_date_msg = email.parser.Parser().parsestr(
                 construct_message(WITHOUT_DATE_MESSAGE)
@@ -128,7 +129,7 @@ class TestCase(unittest.TestCase):
         return self._without_date_msg
 
 
-def pytest_generate_tests(metafunc):
+def pytest_generate_tests(metafunc: typing.Any) -> None:
     # from https://docs.pytest.org/en/latest/example/parametrize.html#a-quick-port-of-testscenarios  # noqa
     idlist = []
     argvalues = []

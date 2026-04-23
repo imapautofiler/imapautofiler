@@ -13,16 +13,16 @@ jobs:
       matrix:
         hatch-environment:
           - "docs:build"
-          - "test:lint"
+          - "test:precommit"
           - "test:pkglint"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
 
       - name: Install dependencies
         run: python -m pip install hatch

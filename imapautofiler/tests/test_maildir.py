@@ -14,23 +14,29 @@ import email.utils
 import mailbox
 import os.path
 import textwrap
+import typing
 import unittest
 
 import fixtures
 
 from imapautofiler import client
 
+F = typing.TypeVar("F", bound=fixtures.Fixture)
+
 
 class MaildirFixture(fixtures.Fixture):
-    def __init__(self, root, name):
+    def __init__(self, root: str, name: str) -> None:
         self._root = root
         self._path = os.path.join(root, name)
         self.name = name
         self.make_message(subject="init maildir")
 
     def make_message(
-        self, subject="subject", from_addr="from@example.com", to_addr="to@example.com"
-    ):
+        self,
+        subject: str = "subject",
+        from_addr: str = "from@example.com",
+        to_addr: str = "to@example.com",
+    ) -> mailbox.MaildirMessage:
         mbox = mailbox.Maildir(self._path)
         mbox.lock()
         try:
@@ -54,7 +60,7 @@ class MaildirFixture(fixtures.Fixture):
 
 
 class MaildirTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.tmpdir = self.useFixture(fixtures.TempDir()).path
         self.src_mbox = self.useFixture(MaildirFixture(self.tmpdir, "source-mailbox"))
@@ -64,28 +70,28 @@ class MaildirTest(unittest.TestCase):
         )
         self.client = client.MaildirClient({"maildir": self.tmpdir})
 
-    def useFixture(self, f):
+    def useFixture(self, f: F) -> F:
         f.setUp()
         self.addCleanup(f.cleanUp)
         return f
 
-    def test_list_mailboxes(self):
+    def test_list_mailboxes(self) -> None:
         expected = set(["destination-mailbox", "source-mailbox"])
         actual = set(self.client.list_mailboxes())
         self.assertEqual(expected, actual)
 
-    def test_mailbox_iterate(self):
+    def test_mailbox_iterate(self) -> None:
         self.src_mbox.make_message(subject="added by test")
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)
 
-    def test_copy_message(self):
+    def test_copy_message(self) -> None:
         self.src_mbox.make_message(subject="added by test")
-        messages = list(self.client.mailbox_iterate(self.src_mbox.name))
+        messages = list(self.client.get_mailbox_iterator(self.src_mbox.name))
         for msg_id, msg in messages:
             if msg["subject"] != "added by test":
                 continue
@@ -98,13 +104,13 @@ class MaildirTest(unittest.TestCase):
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
 
-    def test_move_message(self):
+    def test_move_message(self) -> None:
         self.src_mbox.make_message(subject="added by test")
-        messages = list(self.client.mailbox_iterate(self.src_mbox.name))
+        messages = list(self.client.get_mailbox_iterator(self.src_mbox.name))
         for msg_id, msg in messages:
             if msg["subject"] != "added by test":
                 continue
@@ -117,13 +123,13 @@ class MaildirTest(unittest.TestCase):
         expected = set(["init maildir", "added by test"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.dest_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.dest_mbox.name)
         )
         self.assertEqual(expected, actual)
         # No longer appears in source maildir
         expected = set(["init maildir"])
         actual = set(
             msg["subject"]
-            for msg_id, msg in self.client.mailbox_iterate(self.src_mbox.name)
+            for msg_id, msg in self.client.get_mailbox_iterator(self.src_mbox.name)
         )
         self.assertEqual(expected, actual)
